@@ -374,6 +374,25 @@ where
     pub fn get_irda_encoding(&self) -> Option<u8> {
         self.registers.get_irda_encoding()
     }
+
+    /// Enable RS485 feature, which enables control of an external line driver.
+    /// This causes a transmit enable pin to be driven high while the transmitter
+    /// is active. The guard time causes the enable pin to remain high following
+    /// the transmission. See datasheet for more information.
+    #[inline]
+    pub fn rs485_mode(mut self, guard_time: u8) -> Self {
+        self.set_rs485_mode(guard_time);
+        self
+    }
+
+    /// Enable RS485 feature, which enables control of an external line driver.
+    /// This causes a transmit enable pin to be driven high while the transmitter
+    /// is active. The guard time causes the enable pin to remain high following
+    /// the transmission. See datasheet for more information.
+    #[inline]
+    pub fn set_rs485_mode(&mut self, guard_time: u8) {
+        self.registers.set_rs485_mode(guard_time);
+    }
 }
 
 impl<P: ValidPads> Config<P, DynCharSize> {

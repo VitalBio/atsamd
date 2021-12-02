@@ -343,6 +343,20 @@ impl<S: Sercom> Registers<S> {
         }
     }
 
+    /// Enable RS485 feature, which enables control of an external line driver.
+    /// This causes a transmit enable pin to be driven high while the transmitter
+    /// is active. The guard time causes the enable pin to remain high following
+    /// the transmission. See datasheet for more information.
+    #[inline]
+    pub(super) fn set_rs485_mode(&mut self, guard_time: u8) {
+        // let form = self.usart().ctrla.read().form().bits();
+        // if ! matches!(form, 0x00 | 0x01) {
+        //     self.usart().ctrla.modify(|_, w| unsafe { w.form().bits(0) });
+        // }
+        self.usart().ctrla.modify(|_, w| w.txpo().txpo_3());
+        self.usart().ctrlc.modify(|_, w| unsafe { w.gtime().bits(guard_time) });
+    }
+
     /// Clear specified interrupt flags
     #[inline]
     pub(super) fn clear_flags(&mut self, flags: Flags) {
