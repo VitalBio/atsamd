@@ -7,6 +7,9 @@ use crate::hal::{Pwm, PwmPin};
 use crate::time::Hertz;
 use crate::timer_params::TimerParams;
 
+mod flags;
+pub use flags::*;
+
 use crate::pac::{MCLK, TC0, TC1, TC2, TC3, TCC0, TCC1, TCC2};
 #[cfg(feature = "min-samd51j")]
 use crate::pac::{TC4, TC5, TCC3, TCC4};
@@ -483,6 +486,30 @@ impl<I: PinId, M: PinMode> $TYPE<I, M> {
             tcc,
             pinout,
         }
+    }
+
+    /// Read the interrupt flags
+    #[inline]
+    pub fn read_interrupt_flags(&self) -> Flags {
+        Flags::from_bits_truncate(self.tcc.intflag.read().bits())
+    }
+    
+    /// Clear the interrupt flags
+    #[inline]
+    pub fn clear_interrupt_flags(&mut self, flags: Flags) {
+        self.tcc.intflag.modify(|_, w| unsafe { w.bits(flags.bits()) });
+    }
+    
+    /// Enable interrupts for the specified flags
+    #[inline]
+    pub fn enable_interrupts(&mut self, flags: Flags) {
+        self.tcc.intenset.write(|w| unsafe { w.bits(flags.bits()) });
+    }
+    
+    /// Disable specified interrupts
+    #[inline]
+    pub fn disable_interrupts(&mut self, flags: Flags) {
+        self.tcc.intenclr.write(|w| unsafe { w.bits(flags.bits()) });
     }
 }
 
