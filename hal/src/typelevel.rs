@@ -631,6 +631,8 @@
 //! you put back an instance of `P` exactly. The final use of [`Into`] is key
 //! here. It transforms the `SpecificPin` back into `P` itself.
 
+use typenum::{Bit, UInt, UTerm, Unsigned};
+
 mod private {
     /// Super trait used to mark traits with an exhaustive set of
     /// implementations
@@ -647,10 +649,15 @@ mod private {
 
 pub(crate) use private::Sealed;
 
-/// Type-level version of the [None] variant
+/// Type-level version of the [`None`] variant
 #[derive(Default)]
 pub struct NoneT;
+
 impl Sealed for NoneT {}
+
+//==============================================================================
+// Is
+//==============================================================================
 
 /// Marker trait for type identity
 ///
@@ -700,3 +707,20 @@ where
 {
     type Type = T;
 }
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __opt_type {
+    () => {
+        $crate::typelevel::NoneT
+    };
+    ($Type:ty) => {
+        $Type
+    };
+}
+
+/// Sealed trait implemented for all [`UInt<U, B>`] types
+impl<U: Unsigned, B: Bit> Sealed for UInt<U, B> {}
+
+/// Sealed trait implemented for [`UTerm`] type
+impl Sealed for UTerm {}
