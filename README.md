@@ -111,57 +111,6 @@ A BSP (**B**oard **S**upport **P**ackage) is a crate that contains definitions s
 
 * `wio_terminal`
 
-
-### Tier 2 BSPs
-
-* `arduino_mkr1000`
-
-* `arduino_mkrvidor4000`
-
-* `arduino_mkrzero`
-
-* `arduino_nano33iot`
-
-* `atsame54_xpro`
-
-* `circuit_playground_express`
-
-* `edgebadge`
-
-* `gemma_m0`
-
-* `grand_central_m4`
-
-* `itsybitsy_m0`
-
-* `itsybitsy_m4`
-
-* `p1am_100`
-
-* `pfza_proto1`
-
-* `pyportal`
-
-* `qt_py_m0`
-
-* `samd21_mini`
-
-* `serpente`
-
-* `sodaq_one`
-
-* `sodaq_sara_aff`
-
-* `trellis_m4`
-
-* `trinket_m0`
-
-* `wio_lite_mg126`
-
-* `wio_lite_w600`
-
-* `xiao_m0`
-
 To bootstrap your own project you should be able to copy/paste the Rust code from the examples folder within the folder of the BSP you've chosen. But you shouldn't copy the `Cargo.toml` file from there, since that's not only used for the examples, but also for the whole BSP itself. You want to make your own `Cargo.toml` file. If you're new to this and have no clue what you're doing then this is probably the line you want in there:
 
 ```rust
@@ -226,16 +175,56 @@ This is the preferred pure rust ecosystem method for interacting with bootloader
 
 The `cargo-hf2` crate replaces the `cargo build` command to include flashing over USB to connected UF2 devices, using hf2 flashing over HID protocol.
 
-```bash
+```Shell
 $ cargo install cargo-hf2
 ```
 
 and from a bsp directory
-```
+
+```Shell
 $ cargo hf2 --example blinky_basic --features unproven --release
 ```
 
+If you are on Linux and hf2 fails to flash your board even if it is connected and in bootloader
+mode, you might need to add some `udev` rules if you have not done that yet.
+
+You might want to have all the hf2 related rules in a single file, i.e. `/etc/udev/rules.d/99-hf2-boards.rules`,
+or have a different rules file for each vendor.
+
+The rules for Seeeduino and Adafruit boards look like this:
+
+```Shell
+#adafruit rules
+ATTRS{idVendor}=="239a", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="239a", MODE="0666"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="239a", MODE="0666"
+
+#seeeduino rules
+ATTRS{idVendor}=="2886", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2886", MODE="0666"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2886", MODE="0666"
+```
+
+If you want to add boards from another vendor, you can get the vendor id with the `lsusb` command,
+for example:
+
+```Shell
+$ lsusb
+Bus 001 Device 005: ID 2886:002f Seeed Technology Co., Ltd. Seeeduino XIAO
+...
+```
+
+Here `2886` is the vendor id and `002f` the product id.
+
+After adding the rules remember to reboot or run:
+
+```Shell
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
 For more information, refer to the `README` files for each crate:
+
 * [hf2 library (`hf2`)](https://github.com/jacobrosenthal/hf2-rs/tree/master/hf2)
 * [hf2 binary (`hf2-cli`)](https://github.com/jacobrosenthal/hf2-rs/tree/master/hf2-cli)
 * [hf2 cargo subcommand (`hf2-cargo`)](https://github.com/jacobrosenthal/hf2-rs/tree/master/cargo-hf2)

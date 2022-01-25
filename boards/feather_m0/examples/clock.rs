@@ -10,7 +10,6 @@ use panic_semihosting as _;
 
 use cortex_m::interrupt::free as disable_interrupts;
 use cortex_m::peripheral::NVIC;
-use heapless::consts::U16;
 use heapless::String;
 use usb_device::bus::UsbBusAllocator;
 use usb_device::prelude::*;
@@ -20,7 +19,7 @@ use bsp::hal;
 use bsp::pac;
 use feather_m0 as bsp;
 
-use bsp::entry;
+use bsp::{entry, pin_alias};
 use hal::clock::{ClockGenId, ClockSource, GenericClockController};
 use hal::delay::Delay;
 use hal::prelude::*;
@@ -42,7 +41,7 @@ fn main() -> ! {
 
     let mut delay = Delay::new(core.SYST, &mut clocks);
     let pins = bsp::Pins::new(peripherals.PORT);
-    let mut red_led: bsp::RedLed = pins.d13.into();
+    let mut red_led: bsp::RedLed = pin_alias!(pins.red_led).into();
 
     // get the internal 32k running at 1024 Hz for the RTC
     let timer_clock = clocks
@@ -89,7 +88,7 @@ fn main() -> ! {
         let time =
             disable_interrupts(|_| unsafe { RTC.as_mut().map(|rtc| rtc.current_time()) }).unwrap();
 
-        let mut data = String::<U16>::new();
+        let mut data = String::<16>::new();
         write!(
             data,
             "{:02}:{:02}:{:02}\r\n",

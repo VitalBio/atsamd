@@ -1,14 +1,15 @@
 [package]
 name = "itsybitsy_m4"
-version = "0.6.0"
+version = "0.7.0"
 authors = [
     "Nic Hartley <nxh9052@rit.edu>",
     "Tom <twitchyliquid64@ciphersink.net>",
 ]
 description = "Board Support crate for the Adafruit ItsyBitsy M4 Express"
 keywords = ["no-std", "arm", "cortex-m", "embedded-hal"]
+categories = ["embedded", "hardware-support", "no-std"]
 license = "MIT OR Apache-2.0"
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/atsamd-rs/atsamd"
 readme = "README.md"
 
@@ -18,11 +19,11 @@ apa102-spi = "0.3"
 smart-leds = "0.3"
 
 [dependencies.cortex-m-rt]
-version = "0.6.12"
+version = "0.7"
 optional = true
 
 [dependencies.atsamd-hal]
-version = "0.13"
+version = "0.14"
 default-features = false
 
 [dependencies.usb-device]
@@ -34,8 +35,6 @@ cortex-m = "0.7"
 usbd-serial = "0.1"
 panic-halt = "0.2"
 panic-semihosting = "0.5"
-cortex-m-semihosting = "0.3"
-cortex-m-rtic = "0.5.1"
 
 [features]
 # ask the HAL to enable atsamd51g support
@@ -65,6 +64,9 @@ name = "blinky_basic"
 
 [[example]]
 name = "dotstar"
+
+[[example]]
+name = "spi"
 
 [[example]]
 name = "usb_serial"

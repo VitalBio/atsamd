@@ -1,22 +1,23 @@
 [package]
 name = "atsame54_xpro"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
     "Karsten Große <karsten.grosse@sympatron.de>"
 ]
 description = "Board Support crate for the SAM E54 Xplained Pro Evaluation Kit"
 keywords = ["no-std", "arm", "cortex-m", "embedded-hal"]
+categories = ["embedded", "hardware-support", "no-std"]
 license = "MIT OR Apache-2.0"
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/atsamd-rs/atsamd"
 readme = "README.md"
 
 [dependencies.cortex-m-rt]
-version = "0.6.12"
+version = "0.7"
 optional = true
 
 [dependencies.atsamd-hal]
-version = "0.13"
+version = "0.14"
 default-features = false
 
 [dependencies.usb-device]
@@ -24,11 +25,8 @@ version = "0.2"
 optional = true
 
 [dev-dependencies]
-usbd-serial = "0.1"
 panic-halt = "0.2"
 panic-semihosting = "0.5"
-cortex-m-semihosting = "0.3"
-cortex-m-rtic = "0.5.1"
 
 [features]
 default = ["rt", "atsamd-hal/same54p", "atsamd-hal/unproven"]
