@@ -150,6 +150,7 @@ impl<G: GclkNum> GclkToken<G> {
     #[inline]
     fn improve_duty_cycle(&mut self, flag: bool) {
         self.genctrl().modify(|_, w| w.idc().bit(flag));
+        self.wait_syncbusy();
     }
 
     /// Enable output of the generator clock over [`GCLK_IO`][GclkIo] pins
