@@ -61,6 +61,7 @@ macro_rules! impl_tc_pinout {
 }
 
 impl_tc_pinout!(TC0Pinout: [
+    (Pa4, PA04),
     (Pa5, PA05),
     (Pa9, PA09),
     #[cfg(feature = "min-samd51j")]
@@ -493,19 +494,19 @@ impl<I: PinId, M: PinMode> $TYPE<I, M> {
     pub fn read_interrupt_flags(&self) -> Flags {
         Flags::from_bits_truncate(self.tcc.intflag.read().bits())
     }
-    
+
     /// Clear the interrupt flags
     #[inline]
     pub fn clear_interrupt_flags(&mut self, flags: Flags) {
         self.tcc.intflag.modify(|_, w| unsafe { w.bits(flags.bits()) });
     }
-    
+
     /// Enable interrupts for the specified flags
     #[inline]
     pub fn enable_interrupts(&mut self, flags: Flags) {
         self.tcc.intenset.write(|w| unsafe { w.bits(flags.bits()) });
     }
-    
+
     /// Disable specified interrupts
     #[inline]
     pub fn disable_interrupts(&mut self, flags: Flags) {
