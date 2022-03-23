@@ -280,7 +280,7 @@ impl<I: PinId> $TYPE<I> {
 impl<I: PinId> Pwm for $TYPE<I> {
     type Channel = Channel;
     type Time = Hertz;
-    type Duty = u32;
+    type Duty = u16;
 
     fn disable(&mut self, _channel: Self::Channel) {
         self.tc.count16().ctrla.modify(|_, w| w.enable().clear_bit());
@@ -299,8 +299,7 @@ impl<I: PinId> Pwm for $TYPE<I> {
     }
 
     fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
-        let cc = self.tc.count16().cc();
-        let duty = cc[channel as usize].read().cc().bits();
+        let duty = self.tc.count16().cc[channel as usize].read().cc().bits();
         duty
     }
 
@@ -310,8 +309,7 @@ impl<I: PinId> Pwm for $TYPE<I> {
     }
 
     fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
-        let cc = self.tc.count16().cc();
-        cc[channel as usize].write(|w| unsafe { w.cc().bits(duty) });
+        self.tc.count16().cc[channel as usize].write(|w| unsafe { w.cc().bits(duty) });
     }
 
     fn set_period<P>(&mut self, period: P)
@@ -346,22 +344,22 @@ impl<I: PinId> Pwm for $TYPE<I> {
 }
 
 pwm_tc! {
-    Tc0Pwm: (TC0, TC0Pinout, Tc0Tc1Clock, apbbmask, tc0_, TcPwm0Wrapper),
-    Tc1Pwm: (TC1, TC1Pinout, Tc0Tc1Clock, apbbmask, tc1_, TcPwm1Wrapper),
-    Tc2Pwm: (TC2, TC2Pinout, Tc2Tc3Clock, apbcmask, tc2_, TcPwm2Wrapper),
-    Tc3Pwm: (TC3, TC3Pinout, Tc2Tc3Clock, apbcmask, tc3_, TcPwm3Wrapper),
+    Tc0Pwm: (TC0, TC0Pinout, Tc0Tc1Clock, apbamask, tc0_, TcPwm0Wrapper),
+    Tc1Pwm: (TC1, TC1Pinout, Tc0Tc1Clock, apbamask, tc1_, TcPwm1Wrapper),
+    Tc2Pwm: (TC2, TC2Pinout, Tc2Tc3Clock, apbbmask, tc2_, TcPwm2Wrapper),
+    Tc3Pwm: (TC3, TC3Pinout, Tc2Tc3Clock, apbbmask, tc3_, TcPwm3Wrapper),
 }
 
 #[cfg(feature = "min-samd51j")]
 pwm_tc! {
-    Tc4Pwm: (TC4, TC4Pinout, Tc4Tc5Clock, apbbmask, tc4_, TcPwm4Wrapper),
-    Tc5Pwm: (TC5, TC5Pinout, Tc4Tc5Clock, apbbmask, tc5_, TcPwm5Wrapper),
+    Tc4Pwm: (TC4, TC4Pinout, Tc4Tc5Clock, apbcmask, tc4_, TcPwm4Wrapper),
+    Tc5Pwm: (TC5, TC5Pinout, Tc4Tc5Clock, apbcmask, tc5_, TcPwm5Wrapper),
 }
 
 #[cfg(feature = "min-samd51n")]
 pwm_tc! {
-    Tc6Pwm: (TC6, TC6Pinout, Tc6Tc7Clock, apbbmask, tc6_, TcPwm6Wrapper),
-    Tc7Pwm: (TC7, TC7Pinout, Tc6Tc7Clock, apbbmask, tc7_, TcPwm7Wrapper),
+    Tc6Pwm: (TC6, TC6Pinout, Tc6Tc7Clock, apbdmask, tc6_, TcPwm6Wrapper),
+    Tc7Pwm: (TC7, TC7Pinout, Tc6Tc7Clock, apbdmask, tc7_, TcPwm7Wrapper),
 }
 
 // Timer/Counter for Control Applications (TCCx)
