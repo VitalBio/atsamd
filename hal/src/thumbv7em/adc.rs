@@ -1,13 +1,12 @@
 //! Analogue-to-Digital Conversion
-use crate::clock::GenericClockController;
+use crate::clock;
 #[rustfmt::skip]
 #[allow(deprecated)]
 use crate::gpio::v1;
 use crate::gpio::v2::*;
 use crate::hal::adc::{Channel, OneShot};
-use crate::pac::gclk::genctrl::SRC_A::DFLL;
-use crate::pac::gclk::pchctrl::GEN_A;
 use crate::pac::{adc0, ADC0, ADC1, MCLK};
+use crate::time::Hertz;
 
 use crate::calibration;
 
@@ -46,16 +45,49 @@ pub struct SingleConversion;
 pub struct FreeRunning;
 
 macro_rules! adc_hal {
-    ($($ADC:ident: ($init:ident, $mclk:ident, $apmask:ident, $compcal:ident, $refcal:ident, $r2rcal:ident),)+) => {
+    ($($ADC:ident: ($init:ident, $clock:ident, $apmask:ident, $apbits:ident, $compcal:ident, $refcal:ident, $r2rcal:ident),)+) => {
         $(
 impl Adc<$ADC> {
-    pub fn $init(adc: $ADC, mclk: &mut MCLK, clocks: &mut GenericClockController, gclk:GEN_A) -> Self {
-        mclk.$mclk.modify(|_, w| w.$apmask().set_bit());
-        // set to 1/(1/(48000000/32) * 6) = 250000 SPS
-        let adc_clock = clocks.configure_gclk_divider_and_source(gclk, 1, DFLL, false)
-            .expect("adc clock setup failed");
-        clocks.$init(&adc_clock).expect("adc clock setup failed");
-        adc.ctrla.modify(|_, w| w.prescaler().div32());
+    pub fn $init<F: Into<Hertz>>(
+        clock: &clock::$clock,
+        freq: F,
+        adc: $ADC,
+        mclk: &mut MCLK,
+        samples: SampleRate,
+    ) -> Self {
+        mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
+        adc.ctrla.write(|w| w.swrst().set_bit());
+        while adc.syncbusy.read().swrst().bit_is_set() {}
+
+        // Find best prescaler to get close to target freq
+        let freq = freq.into();
+        let ticks: u32 = clock.freq().0 / freq.0.max(1) / (12 + 5) / (1u32 << samples as u32);
+        let divider: u32 = {
+            let next_pow = ticks.next_power_of_two();
+            let prev_pow = (ticks >> 1).next_power_of_two();
+            if next_pow - ticks < ticks - prev_pow {
+                next_pow
+            }
+            else {
+                prev_pow
+            }
+        };
+        adc.ctrla.modify(|_, w| w.enable().clear_bit());
+        adc.ctrla.modify(|_, w| {
+            match divider {
+                1 | 2 => w.prescaler().div2(), // Can't go faster than div2
+                4 => w.prescaler().div4(),
+                8 => w.prescaler().div8(),
+                16 => w.prescaler().div16(),
+                32 => w.prescaler().div32(),
+                64 => w.prescaler().div64(),
+                128 => w.prescaler().div128(),
+                256 => w.prescaler().div256(),
+                d if d > 256 => w.prescaler().div256(), // Can't go slower than div256
+                _ => unreachable!()
+            }
+        });
+
         adc.ctrlb.modify(|_, w| w.ressel()._12bit());
         while adc.syncbusy.read().ctrlb().bit_is_set() {}
         adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(5)}); // sample length
@@ -70,7 +102,7 @@ impl Adc<$ADC> {
         });
 
         let mut newadc = Self { adc };
-        newadc.samples(adc0::avgctrl::SAMPLENUM_A::_1);
+        newadc.samples(samples);
         newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
 
         newadc
@@ -268,8 +300,8 @@ where
 }
 
 adc_hal! {
-    ADC0: (adc0, apbdmask, adc0_, adc0_biascomp_scale_cal, adc0_biasref_scale_cal, adc0_biasr2r_scale_cal),
-    ADC1: (adc1, apbdmask, adc1_, adc1_biascomp_scale_cal, adc1_biasref_scale_cal, adc1_biasr2r_scale_cal),
+    ADC0: (adc0, Adc0Clock, apbdmask, adc0_, adc0_biascomp_scale_cal, adc0_biasref_scale_cal, adc0_biasr2r_scale_cal),
+    ADC1: (adc1, Adc1Clock, apbdmask, adc1_, adc1_biascomp_scale_cal, adc1_biasref_scale_cal, adc1_biasr2r_scale_cal),
 }
 
 macro_rules! adc_pins {
