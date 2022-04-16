@@ -26,114 +26,160 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
+use paste::paste;
+use seq_macro::seq;
 use typenum::U0;
 
 use crate::pac::oscctrl::dpll::{dpllstatus, dpllsyncbusy, DPLLCTRLA, DPLLCTRLB, DPLLRATIO};
 use crate::pac::oscctrl::DPLL;
 
-pub use crate::pac::oscctrl::dpll::dpllctrlb::REFCLK_A as DpllSourceEnum;
+use crate::pac::oscctrl::dpll::dpllctrlb::REFCLK_A;
 
-use crate::clock::v2::{
-    types::{Counter, Decrement, Enabled, Increment},
-    Source, SourceMarker,
-};
 use crate::time::Hertz;
-use crate::typelevel::Sealed;
+use crate::typelevel::{Counter, Decrement, Increment, Sealed};
 
-use super::gclk::{GclkNum, GclkSource, GclkSourceEnum, GclkSourceMarker};
-use super::gclkio::NotGclkInput;
-use super::pclk::{Pclk, PclkSourceMarker, PclkType};
+use super::gclk::{GclkId, GclkSourceId};
+use super::pclk::{Pclk, PclkId};
+use super::xosc::{Xosc0Id, Xosc1Id};
+use super::xosc32k::Xosc32kId;
+use super::{Enabled, Source};
 
 //==============================================================================
-// DpllNum
+// DpllId
 //==============================================================================
 
-/// Trait ensuring all [`Dplls`](Dpll) have numeric identifiers
-pub trait DpllNum: Sealed {
-    /// Associated constant marking an index of a [`Dpll`] type. It is useful in
-    /// [`DpllToken`] in order to properly apply the offset to get an adequate
-    /// [`DPLL`] register
+/// Type-level `enum` for DPLL identifiers
+///
+/// See the documentation on [type-level enums] for more details on the
+/// pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub trait DpllId: Sealed {
+    /// Corresponding numeric index
     const NUM: usize;
 }
 
-/// A module that creates a namespace difference between a
-/// [`marker::Dpll0`]/[`marker::Dpll1`] marker types and a [`Dpll0`]/[`Dpll1`]
-/// builder type aliases
-pub mod marker {
-    use super::*;
+/// Type-level variant representing the identity of DPLL0
+///
+/// This type is a member of several [type-level enums]. See the documentation
+/// on [type-level enums] for more details on the pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub enum Dpll0Id {}
 
-    /// Type which serves as a source marker for the [`super::Dpll0`] and
-    /// provides numerical identity for it
-    pub enum Dpll0 {}
+impl Sealed for Dpll0Id {}
 
-    impl Sealed for Dpll0 {}
+impl DpllId for Dpll0Id {
+    const NUM: usize = 0;
+}
 
-    impl DpllNum for Dpll0 {
-        const NUM: usize = 0;
-    }
+/// Type-level variant representing the identity of DPLL1
+///
+/// This type is a member of several [type-level enums]. See the documentation
+/// on [type-level enums] for more details on the pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub enum Dpll1Id {}
 
-    impl GclkSourceMarker for Dpll0 {
-        const GCLK_SRC: GclkSourceEnum = GclkSourceEnum::DPLL0;
-    }
+impl Sealed for Dpll1Id {}
 
-    impl NotGclkInput for Dpll0 {}
-
-    impl SourceMarker for Dpll0 {}
-
-    /// Type which serves as a source marker for the [`super::Dpll1`] and
-    /// provides numerical identity for it
-    pub enum Dpll1 {}
-
-    impl Sealed for Dpll1 {}
-
-    impl DpllNum for Dpll1 {
-        const NUM: usize = 1;
-    }
-
-    impl GclkSourceMarker for Dpll1 {
-        const GCLK_SRC: GclkSourceEnum = GclkSourceEnum::DPLL1;
-    }
-
-    impl NotGclkInput for Dpll1 {}
-
-    impl SourceMarker for Dpll1 {}
+impl DpllId for Dpll1Id {
+    const NUM: usize = 1;
 }
 
 //==============================================================================
-// DpllSource
+// RawPredivider
 //==============================================================================
 
-/// Source marker trait for [`Dpll`] sources
+/// Raw predivider for DPLLs sourced by an [`Xosc`](super::xosc::Xosc)
 ///
-/// Note: This trait is used inconsistently; [`Pclk`] as a source is used
-/// directly in an API and therefore matching over this type is redundant.
-pub trait DpllSourceMarker: SourceMarker {
-    /// Associated constant provides a variant of a low level enum type from PAC
-    /// that is used during a HW register write
-    const DPLL_SRC: DpllSourceEnum;
+/// Represents a 10-bit value used to set the clock division factor for DPLLs
+/// sourced by an `Xosc`. The actual divider can be calculated with the formula:
+///
+/// ```text
+/// f_DPLL = f_XOSC / (2 * (raw_prediv + 1))
+/// ```
+///
+/// This value is relevant only for a [`Dpll`] that is driven by an
+/// [`Xosc`](super::xosc::Xosc). For other clock sources, the clock divider is
+/// equal to 1.
+pub type RawPredivider = u16;
+
+//==============================================================================
+// DpllSourceId
+//==============================================================================
+
+/// Value-level version of [`DpllSourceId`]
+///
+/// Indicates the clock source for a [`Dpll`]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum DynDpllSourceId {
+    /// The DPLL is driven by a [`Pclk`]
+    Pclk,
+    /// The DPLL is driven by [`Xosc0`](super::xosc::Xosc0)
+    Xosc0,
+    /// The DPLL is driven by [`Xosc0`](super::xosc::Xosc1)
+    Xosc1,
+    /// The DPLL is driven by [`Xosc32k`](super::xosc32k::Xosc32k)
+    Xosc32k,
 }
 
-/// This trait represents a [`Dpll`] source provider.
-///
-/// Note: This trait is used inconsistently; [`Pclk`] as a source is used
-/// directly in an API and therefore abstracting away through this trait is
-/// redundant.
-pub trait DpllSource: Source {
-    /// Associated type used in order to mark
-    /// [`Dpll<_, XoscDriven<_, T>>`]/[`Dpll<_, Xosc32kDriven<_, T>>`] type with
-    /// a proper `T`, according to what `source` was passed into the
-    /// [`Dpll::from_xosc`]/[`Dpll::from_xosc32k`] and to only allow calls into
-    /// [`Dpll::free`] with a matching `source`
-    type Type: DpllSourceMarker;
+impl From<DynDpllSourceId> for REFCLK_A {
+    fn from(source: DynDpllSourceId) -> Self {
+        match source {
+            DynDpllSourceId::Pclk => REFCLK_A::GCLK,
+            DynDpllSourceId::Xosc0 => REFCLK_A::XOSC0,
+            DynDpllSourceId::Xosc1 => REFCLK_A::XOSC1,
+            DynDpllSourceId::Xosc32k => REFCLK_A::XOSC32,
+        }
+    }
 }
 
-/// [`DpllSource`] subtrait that is used to distinguish between external 32kHz
-/// and non-32kHz oscillators
-pub trait DpllSourceXosc32k: DpllSource {}
+/// Type-level `enum` for DPLL sources
+///
+/// See the documentation on [type-level enums] for more details on the
+/// pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub trait DpllSourceId<D: DpllId> {
+    /// Corresponding variant of [`DynDpllSourceId`]
+    const DYN: DynDpllSourceId;
+    /// Corresponding [`Pclk`] type if the DPLL source is a peripheral clock
+    type Pclk;
+    /// Convert the raw predivider to the actual divider
+    fn predivider(raw_prediv: RawPredivider) -> u32;
+}
 
-/// [`DpllSource`] subtrait that is used to distinguish between external 32kHz
-/// and non-32kHz oscillators
-pub trait DpllSourceXosc: DpllSource {}
+impl<D: DpllId + PclkId, G: GclkId> DpllSourceId<D> for G {
+    const DYN: DynDpllSourceId = DynDpllSourceId::Pclk;
+    type Pclk = Pclk<D, G>;
+    #[inline]
+    fn predivider(_: RawPredivider) -> u32 {
+        1
+    }
+}
+
+seq!(N in 0..=1 {
+    paste! {
+        impl<D: DpllId> DpllSourceId<D> for [<Xosc N Id>] {
+            const DYN: DynDpllSourceId = DynDpllSourceId::Xosc~N;
+            type Pclk = ();
+            #[inline]
+            fn predivider(raw_prediv: RawPredivider) -> u32 {
+                2 * (1 + raw_prediv as u32)
+            }
+        }
+    }
+});
+
+impl<D: DpllId> DpllSourceId<D> for Xosc32kId {
+    const DYN: DynDpllSourceId = DynDpllSourceId::Xosc32k;
+    type Pclk = ();
+    #[inline]
+    fn predivider(_: RawPredivider) -> u32 {
+        1
+    }
+}
 
 //==============================================================================
 // DpllToken
@@ -146,11 +192,11 @@ pub trait DpllSourceXosc: DpllSource {}
 ///
 /// Within an [`atsamd_hal`][`crate`], [`DpllToken`] struct is a low-level
 /// access abstraction for HW register calls.
-pub struct DpllToken<D: DpllNum> {
+pub struct DpllToken<D: DpllId> {
     dpll: PhantomData<D>,
 }
 
-impl<D: DpllNum> DpllToken<D> {
+impl<D: DpllId> DpllToken<D> {
     /// Constructor
     ///
     /// Unsafe: There should always be only a single instance thereof. It can be
@@ -211,8 +257,9 @@ impl<D: DpllNum> DpllToken<D> {
 
     /// Set the clock source.
     #[inline]
-    fn set_source_clock(&mut self, variant: DpllSourceEnum) {
-        self.ctrlb().modify(|_, w| w.refclk().variant(variant));
+    fn set_source_clock(&mut self, source: DynDpllSourceId) {
+        self.ctrlb()
+            .modify(|_, w| w.refclk().variant(source.into()));
     }
 
     /// When source is a XOSC this has effect, ignored otherwise.
@@ -232,6 +279,11 @@ impl<D: DpllNum> DpllToken<D> {
     #[inline]
     fn set_wake_up_fast(&mut self, wuf: bool) {
         self.ctrlb().modify(|_, w| w.wuf().bit(wuf));
+    }
+
+    #[inline]
+    fn set_on_demand(&mut self, on_demand: bool) {
+        self.ctrla().modify(|_, w| w.ondemand().bit(on_demand));
     }
 
     /// Check if [`Dpll`] clock is ready.
@@ -276,101 +328,6 @@ impl<D: DpllNum> DpllToken<D> {
 }
 
 //==============================================================================
-// Mode structure for Dpll
-//==============================================================================
-
-/// 10 bits available for predivision
-///
-/// ```text
-/// f_Div = f_xosc / (2 * (divider + 1))
-/// ```
-///
-/// * Default division factor: 2 (register all 0)
-/// * Maxumum division factor: 2048 (register all 1)
-///
-/// This value is relevant only for a [`Dpll`] that is [`XoscDriven`].
-pub type DpllPredivider = u16;
-
-/// This trait introduces a notion of different modes for [`Dpll`]
-pub trait SrcMode<D: DpllNum>: Sealed {
-    /// Return value of an effective predivider that can be applied on a
-    /// source frequency
-    fn predivider(&self) -> DpllPredivider;
-    /// Perform mode specific HW register writes. By principle it should be
-    /// called only in [`Dpll::enable`]
-    fn enable(&self, token: &mut DpllToken<D>);
-}
-
-/// Struct representing a [`Dpll<marker::DpllX, _>`] mode when it is powered by
-/// a [`Gclk`][`crate::clock::v2::gclk::Gclk`] of choice via
-/// [`Pclk<marker::DpllX, _>`]
-pub struct PclkDriven<D, T>
-where
-    D: DpllNum + PclkType,
-    T: PclkSourceMarker,
-{
-    reference_clk: Pclk<D, T>,
-}
-
-impl<D: DpllNum + PclkType, T: PclkSourceMarker> SrcMode<D> for PclkDriven<D, T> {
-    #[inline]
-    fn predivider(&self) -> DpllPredivider {
-        1_u16
-    }
-
-    #[inline]
-    fn enable(&self, token: &mut DpllToken<D>) {
-        token.set_source_clock(DpllSourceEnum::GCLK);
-    }
-}
-
-impl<D: DpllNum + PclkType, T: PclkSourceMarker> Sealed for PclkDriven<D, T> {}
-
-/// Struct representing a [`Dpll`] mode when it is powered by a non-32kHz
-/// external oscillator
-pub struct XoscDriven<D: DpllNum, T: DpllSourceMarker> {
-    dpll_num: PhantomData<D>,
-    src: PhantomData<T>,
-    raw_predivider: DpllPredivider,
-}
-
-impl<D: DpllNum, T: DpllSourceMarker> SrcMode<D> for XoscDriven<D, T> {
-    #[inline]
-    fn predivider(&self) -> DpllPredivider {
-        2 * (1 + self.raw_predivider)
-    }
-
-    #[inline]
-    fn enable(&self, token: &mut DpllToken<D>) {
-        token.set_source_clock(T::DPLL_SRC);
-        token.set_source_div(self.raw_predivider);
-    }
-}
-
-impl<D: DpllNum, T: DpllSourceMarker> Sealed for XoscDriven<D, T> {}
-
-/// Struct representing a [`Dpll`] mode when it is powered by a 32kHz
-/// external oscillator
-pub struct Xosc32kDriven<D: DpllNum, T: DpllSourceMarker> {
-    dpll_num: PhantomData<D>,
-    src: PhantomData<T>,
-}
-
-impl<D: DpllNum, T: DpllSourceMarker> SrcMode<D> for Xosc32kDriven<D, T> {
-    #[inline]
-    fn predivider(&self) -> DpllPredivider {
-        1_u16
-    }
-
-    #[inline]
-    fn enable(&self, token: &mut DpllToken<D>) {
-        token.set_source_clock(T::DPLL_SRC);
-    }
-}
-
-impl<D: DpllNum, T: DpllSourceMarker> Sealed for Xosc32kDriven<D, T> {}
-
-//==============================================================================
 // Dpll
 //==============================================================================
 
@@ -381,10 +338,10 @@ impl<D: DpllNum, T: DpllSourceMarker> Sealed for Xosc32kDriven<D, T> {}
 ///   [`marker::Dpll1`])
 /// - a mode of operation (available modes: [`PclkDriven`], [`XoscDriven`],
 ///   [`Xosc32kDriven`])
-pub struct Dpll<D, M>
+pub struct Dpll<D, I>
 where
-    D: DpllNum,
-    M: SrcMode<D>,
+    D: DpllId,
+    I: DpllSourceId<D>,
 {
     token: DpllToken<D>,
     src_freq: Hertz,
@@ -392,23 +349,23 @@ where
     frac: u8,
     lock_bypass: bool,
     wake_up_fast: bool,
-    mode: M,
+    on_demand: bool,
+    pclk: I::Pclk,
+    raw_prediv: RawPredivider,
 }
 
-impl<D, T> Dpll<D, PclkDriven<D, T>>
+impl<D, G> Dpll<D, G>
 where
-    D: DpllNum + PclkType,
-    T: PclkSourceMarker,
+    D: DpllId + PclkId,
+    G: GclkId,
 {
-    /// Create a [`Dpll`] from Peripheral Channel (Pclk) fed from Gclk
+    /// Create a [`Dpll`] from a [`Pclk`]
     ///
-    /// Input frequency must be between 32 kHz and 3.2 MHz
-    ///
-    /// Holds the [`Pclk`] until released on deconstruction ([`Dpll<_,
-    /// PclkDriven<_, _>>::free`])
+    /// The corresponding [`Gclk`](super::gclk::Gclk) frequency must be between
+    /// 32 kHz and 3.2 MHz.
     #[inline]
-    pub fn from_pclk(token: DpllToken<D>, reference_clk: Pclk<D, T>) -> Self {
-        let src_freq = reference_clk.freq();
+    pub fn from_pclk(token: DpllToken<D>, pclk: Pclk<D, G>) -> Self {
+        let src_freq = pclk.freq();
         let (mult, frac) = (1, 0);
         Self {
             token,
@@ -417,33 +374,33 @@ where
             frac,
             lock_bypass: false,
             wake_up_fast: false,
-            mode: PclkDriven { reference_clk },
+            on_demand: true,
+            pclk,
+            raw_prediv: 1,
         }
     }
 
-    /// Deconstructs the [`Dpll`], returns the held [`Pclk`]
+    /// Deconstruct the [`Dpll`], release the token, and return the [`Pclk`]
     #[inline]
-    pub fn free(self) -> (DpllToken<D>, Pclk<D, T>) {
-        (self.token, self.mode.reference_clk)
+    pub fn free(self) -> (DpllToken<D>, Pclk<D, G>) {
+        (self.token, self.pclk)
     }
 }
 
-impl<D, T> Dpll<D, Xosc32kDriven<D, T>>
+impl<D> Dpll<D, Xosc32kId>
 where
-    D: DpllNum,
-    T: DpllSourceMarker,
+    D: DpllId,
 {
-    /// Create a [`Dpll`] from an external 32k oscillator
+    /// Create a [`Dpll`] from an [`Xosc32k`](super::xosc32k::Xosc32k)
     ///
-    /// Input frequency must be between 32 kHz and 3.2 MHz
-    ///
-    /// Increments a counter in `reference_clk`
+    /// [`Increment`] the `Xosc32k` [`Enabled`] [`Counter`] to indicate it is
+    /// being used by the `Dpll`
     #[inline]
-    pub fn from_xosc32k<S>(token: DpllToken<D>, reference_clk: S) -> (Self, S::Inc)
+    pub fn from_xosc32k<S>(token: DpllToken<D>, xosc32k: S) -> (Self, S::Inc)
     where
-        S: DpllSourceXosc32k<Type = T> + Increment,
+        S: Source<Id = Xosc32kId> + Increment,
     {
-        let src_freq = reference_clk.freq();
+        let src_freq = xosc32k.freq();
         let (mult, frac) = (1, 0);
 
         let dpll = Self {
@@ -453,93 +410,86 @@ where
             frac,
             lock_bypass: false,
             wake_up_fast: false,
-            mode: Xosc32kDriven {
-                src: PhantomData,
-                dpll_num: PhantomData,
-            },
+            on_demand: true,
+            pclk: (),
+            raw_prediv: 1,
         };
-        (dpll, reference_clk.inc())
+        (dpll, xosc32k.inc())
     }
 
-    /// Deconstructs a [`Dpll`] instance, releases a token and decrements a
-    /// counter in `reference_clk`
+    /// Deconstruct the [`Dpll`], release the token, and [`Decrement`] the
+    /// [`Xosc32k`](super::xosc32k::Xosc32k) [`Enabled`] [`Counter`]
     #[inline]
-    pub fn free<S>(self, reference_clk: S) -> (DpllToken<D>, S::Dec)
+    pub fn free<S>(self, xosc32k: S) -> (DpllToken<D>, S::Dec)
     where
-        S: DpllSourceXosc32k<Type = T> + Decrement,
+        S: Source<Id = Xosc32kId> + Decrement,
     {
-        (self.token, reference_clk.dec())
+        (self.token, xosc32k.dec())
     }
 }
 
-impl<D, T> Dpll<D, XoscDriven<D, T>>
+seq!(N in 0..=1 {
+    paste! {
+        impl<D: DpllId> Dpll<D, [<Xosc N Id>]> {
+            /// Create a [`Dpll`] from an external oscillator
+            ///
+            /// After division by the clock divider (see [`RawPredivider`]), the
+            /// input frequency must be between 32 kHz and 3.2 MHz.
+            ///
+            /// [`Increment`] the `Xosc` [`Enabled`] [`Counter`] to indicate it is
+            /// being used by the `Dpll`
+            #[inline]
+            pub fn from_xosc~N<S>(
+                token: DpllToken<D>,
+                xosc: S,
+                raw_prediv: RawPredivider,
+            ) -> (Self, S::Inc)
+            where
+                S: Source<Id = [<Xosc N Id>]> + Increment,
+            {
+                let src_freq = xosc.freq();
+                let (mult, frac) = (1, 0);
+
+                let dpll = Self {
+                    token,
+                    src_freq,
+                    mult,
+                    frac,
+                    lock_bypass: false,
+                    wake_up_fast: false,
+                    on_demand: true,
+                    pclk: (),
+                    raw_prediv,
+                };
+                (dpll, xosc.inc())
+            }
+
+            /// Set the raw predivider, see [`RawPredivider`]
+            #[inline]
+            pub fn set_raw_prediv(mut self, raw_prediv: RawPredivider) -> Self {
+                self.raw_prediv = raw_prediv;
+                self
+            }
+
+            /// Deconstruct the [`Dpll`], release the token, and [`Decrement`] the
+            /// [`Xosc`](super::xosc::Xosc) [`Enabled`] [`Counter`]
+            #[inline]
+            pub fn free<S>(self, xosc: S) -> (DpllToken<D>, S::Dec)
+            where
+                S: Source<Id = [<Xosc N Id>]> + Decrement,
+            {
+                (self.token, xosc.dec())
+            }
+        }
+    }
+});
+
+impl<D, I> Dpll<D, I>
 where
-    D: DpllNum,
-    T: DpllSourceMarker,
+    D: DpllId,
+    I: DpllSourceId<D>,
 {
-    /// Create a [`Dpll`] from an external oscillator
-    /// ([Xosc0][super::xosc::Xosc0]/[Xosc1][super::xosc::Xosc1])
-    ///
-    /// Input frequency must be between 32 kHz and 3.2 MHz
-    ///
-    /// Provides additional input pre-divider, see [`DpllPredivider`]
-    ///
-    /// Increments a counter in `reference_clk`
-    #[inline]
-    pub fn from_xosc<S>(
-        token: DpllToken<D>,
-        reference_clk: S,
-        predivider: DpllPredivider,
-    ) -> (Self, S::Inc)
-    where
-        S: DpllSourceXosc<Type = T> + Increment,
-    {
-        let raw_predivider = predivider;
-        let src_freq = reference_clk.freq();
-        let (mult, frac) = (1, 0);
-
-        let mode = XoscDriven {
-            dpll_num: PhantomData,
-            src: PhantomData,
-            raw_predivider,
-        };
-
-        let dpll = Self {
-            token,
-            src_freq,
-            mult,
-            frac,
-            lock_bypass: false,
-            wake_up_fast: false,
-            mode,
-        };
-        (dpll, reference_clk.inc())
-    }
-
-    /// Set the predivider, see [`DpllPredivider`]
-    #[inline]
-    pub fn set_source_div(mut self, predivider: DpllPredivider) -> Self {
-        self.mode.raw_predivider = predivider;
-        self
-    }
-
-    /// Deconstructs a [`Dpll`] instance, releases a token and decrements a
-    /// counter in `reference_clk`
-    #[inline]
-    pub fn free<S>(self, reference_clk: S) -> (DpllToken<D>, S::Dec)
-    where
-        S: DpllSourceXosc<Type = D> + Decrement,
-    {
-        (self.token, reference_clk.dec())
-    }
-}
-
-impl<D, M> Dpll<D, M>
-where
-    D: DpllNum,
-    M: SrcMode<D>,
-{
-    /// Set the [`Dpll`] divider
+    /// Set the [`Dpll`] loop divider
     ///
     /// Calculated as
     ///
@@ -588,11 +538,17 @@ where
         self
     }
 
+    #[inline]
+    pub fn set_on_demand(mut self, on_demand: bool) -> Self {
+        self.on_demand = on_demand;
+        self
+    }
+
     /// Return the frequency of the [`Dpll`]
     #[inline]
     pub fn freq(&self) -> Hertz {
         Hertz(
-            self.src_freq.0 / self.mode.predivider() as u32
+            self.src_freq.0 / I::predivider(self.raw_prediv)
                 * (self.mult as u32 + self.frac as u32 / 32),
         )
     }
@@ -601,8 +557,8 @@ where
     ///
     /// - Performs HW register writes
     #[inline]
-    pub fn enable(self) -> Result<Enabled<Self, U0>, Self> {
-        let predivider = self.mode.predivider() as u32;
+    pub fn enable(self) -> Result<EnabledDpll<D, I>, Self> {
+        let predivider = I::predivider(self.raw_prediv);
         let input_frequency = self.src_freq.0 / predivider;
         let output_frequency = self.freq().0;
 
@@ -623,13 +579,20 @@ where
     ///
     /// - Performs HW register writes
     #[inline]
-    pub unsafe fn force_enable(mut self) -> Enabled<Self, U0> {
+    pub unsafe fn force_enable(mut self) -> EnabledDpll<D, I> {
         // Enable the specified mode
-        self.mode.enable(&mut self.token);
+        self.token.set_source_clock(I::DYN);
+        match I::DYN {
+            DynDpllSourceId::Xosc0 | DynDpllSourceId::Xosc1 => {
+                self.token.set_source_div(self.raw_prediv)
+            }
+            _ => {}
+        }
         // Set the loop divider ratio and other settings
         self.token.set_loop_div(self.mult, self.frac);
         self.token.set_lock_bypass(self.lock_bypass);
         self.token.set_wake_up_fast(self.wake_up_fast);
+        self.token.set_on_demand(self.on_demand);
         // Enable the [`Dpll`]
         self.token.enable();
         Enabled::new(self)
@@ -637,28 +600,34 @@ where
 }
 
 /// Alias of [`Dpll`]`<`[`marker::Dpll0`]`, _>`
-pub type Dpll0<M> = Dpll<marker::Dpll0, M>;
+pub type Dpll0<M> = Dpll<Dpll0Id, M>;
 
 /// Alias of [`Dpll`]`<`[`marker::Dpll1`]`, _>`
-pub type Dpll1<M> = Dpll<marker::Dpll1, M>;
+pub type Dpll1<M> = Dpll<Dpll1Id, M>;
 
-impl<D, M> Enabled<Dpll<D, M>, U0>
+pub type EnabledDpll<D, I, N = U0> = Enabled<Dpll<D, I>, N>;
+
+pub type EnabledDpll0<I, N = U0> = EnabledDpll<Dpll0Id, I, N>;
+
+pub type EnabledDpll1<I, N = U0> = EnabledDpll<Dpll1Id, I, N>;
+
+impl<D, I> EnabledDpll<D, I>
 where
-    D: DpllNum,
-    M: SrcMode<D>,
+    D: DpllId,
+    I: DpllSourceId<D>,
 {
     /// Disable the [`Dpll`]
     #[inline]
-    pub fn disable(mut self) -> Dpll<D, M> {
+    pub fn disable(mut self) -> Dpll<D, I> {
         self.0.token.disable();
         self.0
     }
 }
 
-impl<D, M, N> Enabled<Dpll<D, M>, N>
+impl<D, I, N> EnabledDpll<D, I, N>
 where
-    D: DpllNum,
-    M: SrcMode<D>,
+    D: DpllId,
+    I: DpllSourceId<D>,
     N: Counter,
 {
     /// Check if [`Dpll`] has achieved lock
@@ -675,25 +644,17 @@ where
 }
 
 //==============================================================================
-// GclkSource
+// Source
 //==============================================================================
 
-impl<G, D, M, N> GclkSource<G> for Enabled<Dpll<D, M>, N>
+impl<D, I, N> Source for EnabledDpll<D, I, N>
 where
-    G: GclkNum,
-    D: DpllNum + GclkSourceMarker,
-    M: SrcMode<D>,
+    D: DpllId + GclkSourceId,
+    I: DpllSourceId<D>,
     N: Counter,
 {
-    type Type = D;
-}
+    type Id = D;
 
-impl<D, M, N> Source for Enabled<Dpll<D, M>, N>
-where
-    D: DpllNum + GclkSourceMarker,
-    M: SrcMode<D>,
-    N: Counter,
-{
     #[inline]
     fn freq(&self) -> Hertz {
         self.0.freq()

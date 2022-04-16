@@ -56,22 +56,26 @@
 
 use core::marker::PhantomData;
 
+use paste::paste;
 use seq_macro::seq;
 use typenum::{U0, U1};
 
 use crate::pac;
+use crate::pac::gclk::genctrl::DIVSEL_A;
 use crate::pac::NVMCTRL;
 
-pub use crate::pac::gclk::genctrl::{DIVSEL_A, SRC_A as GclkSourceEnum};
-
-use super::gclkio::NotGclkInput;
-use crate::clock::v2::{
-    types::{Counter, Decrement, Enabled, Increment, PrivateIncrement},
-    Source, SourceMarker,
-};
+use crate::pac::gclk::genctrl::SRC_A;
 use crate::pac::gclk::{RegisterBlock, GENCTRL};
 use crate::time::Hertz;
-use crate::typelevel::Sealed;
+use crate::typelevel::{Counter, Decrement, Increment, PrivateIncrement, Sealed};
+
+use super::dfll::DfllId;
+use super::dpll::{Dpll0Id, Dpll1Id};
+use super::gclkio::GclkInId;
+use super::osculp32k::OscUlp32kId;
+use super::xosc::{Xosc0Id, Xosc1Id};
+use super::xosc32k::Xosc32kId;
+use super::{Enabled, Source};
 
 //==============================================================================
 // GclkToken
@@ -82,11 +86,11 @@ use crate::typelevel::Sealed;
 ///
 /// This `struct` takes ownership of a [`GclkNum`] and provides an API to
 /// access the corresponding registers
-pub struct GclkToken<G: GclkNum> {
+pub struct GclkToken<G: GclkId> {
     gen: PhantomData<G>,
 }
 
-impl<G: GclkNum> GclkToken<G> {
+impl<G: GclkId> GclkToken<G> {
     /// Create a new instance of [`GclkToken`]
     ///
     /// # Safety
@@ -139,8 +143,8 @@ impl<G: GclkNum> GclkToken<G> {
 
     /// Set the clock source for the [`Gclk`] generator
     #[inline]
-    fn set_source(&mut self, variant: GclkSourceEnum) {
-        self.genctrl().modify(|_, w| w.src().variant(variant));
+    fn set_source(&mut self, source: DynGclkSourceId) {
+        self.genctrl().modify(|_, w| w.src().variant(source.into()));
         self.wait_syncbusy();
     }
 
@@ -210,106 +214,92 @@ impl<G: GclkNum> GclkToken<G> {
 }
 
 //==============================================================================
-// GclkNum
+// GclkId
 //==============================================================================
 
-/// Trait ensuring all [`Gclks`](Gclk) have numeric identifiers
-pub trait GclkNum: Sealed {
-    /// Associated constant marking an index of a [`Gclk`] type. It is useful in
-    /// [`GclkToken`] in order to properly apply the offset to get an adequate
-    /// [`GENCTRL`] register
+/// Value-level equivalent of [`GclkId`]
+///
+/// This is the value-level version of the type-level `enum` [`GclkId`]. It
+/// selects among the 12 possible GCLKs.
+#[allow(missing_docs)]
+pub enum DynGclkId {
+    Gclk0,
+    Gclk1,
+    Gclk2,
+    Gclk3,
+    Gclk4,
+    Gclk5,
+    Gclk6,
+    Gclk7,
+    Gclk8,
+    Gclk9,
+    Gclk10,
+    Gclk11,
+}
+
+/// Type-level `enum` for GCLK identifiers
+///
+/// See the documentation / on [type-level enums] for more details on the
+/// pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub trait GclkId: Sealed {
+    /// Corresponding variant of [`DynGclkId`]
+    const DYN: DynGclkId;
+    /// Corresponding numeric index
     const NUM: usize;
-    /// Each [`Gclk`] has a divider; its resolution might vary though. See
-    /// [`GclkDivider`] implementors.
+    /// Corresponding divider type
+    ///
+    /// [`Gclk1`] can have a larger divider than the other [`Gclk`]s. The
+    /// [`GclkDivider`] trait abstracts over these details.
     type DividerType: GclkDivider;
 }
 
-impl<G: GclkNum> SourceMarker for G {}
+/// Type-level variant representing the identity of GCLK0
+///
+/// This type is a member of several [type-level enums]. See the documentation
+/// on [type-level enums] for more details on the pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub enum Gclk0Id {}
+impl Sealed for Gclk0Id {}
+impl GclkId for Gclk0Id {
+    const DYN: DynGclkId = DynGclkId::Gclk0;
+    const NUM: usize = 0;
+    type DividerType = GclkDiv;
+}
 
-/// A module that creates a namespace difference between a [`marker::Gclk0`] ..
-/// [`marker::Gclk11`] marker types and a [`Gclk0`] .. [`Gclk11`] builder type
-/// aliases
-pub mod marker {
-    use super::*;
+/// Type-level variant representing the identity of GCLK1
+///
+/// This type is a member of several [type-level enums]. See the documentation
+/// on [type-level enums] for more details on the pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub enum Gclk1Id {}
+impl Sealed for Gclk1Id {}
+impl GclkId for Gclk1Id {
+    const DYN: DynGclkId = DynGclkId::Gclk1;
+    const NUM: usize = 1;
+    type DividerType = Gclk1Div;
+}
 
-    /// Trait allowing to pick all `GclkX` except [`Gclk0`]
-    pub trait NotGclk0: GclkNum {}
-    /// Trait allowing to pick all `GclkX` except [`Gclk1`]
-    pub trait NotGclk1: GclkNum {}
-
-    /// Type which serves as a source marker for the corresponding
-    /// [`super::Gclk`] and provides numerical identity for it
-    ///
-    /// [`super::Gclk0`] is directly coupled to `MCLK` which provides the
-    /// drives a synchronous clocking domain and the main clock
-    ///
-    /// [`NotGclk0`] can be used to exclude this [`Gclk0`]
-    ///
-    /// Standard division factor, see [`GclkDiv`]
-    pub enum Gclk0 {}
-    impl Sealed for Gclk0 {}
-    impl NotGclk1 for Gclk0 {}
-    impl GclkNum for Gclk0 {
-        const NUM: usize = 0;
-        type DividerType = GclkDiv;
-    }
-
-    /// Type which serves as a source marker for the corresponding
-    /// [`super::Gclk`] and provides numerical identity for it
-    ///
-    /// [`super::Gclk1`] has the ability to be fed into other [`Gclk`]s as a
-    /// source
-    ///
-    /// [`NotGclk1`] can be used to exclude this [`Gclk1`]
-    ///
-    /// Increased division factor, see [`Gclk1Div`]
-    pub enum Gclk1 {}
-    impl Sealed for Gclk1 {}
-    impl NotGclk0 for Gclk1 {}
-    impl GclkNum for Gclk1 {
-        const NUM: usize = 1;
-        type DividerType = Gclk1Div;
-    }
-
-    impl GclkSourceMarker for Gclk1 {
-        const GCLK_SRC: GclkSourceEnum = GclkSourceEnum::GCLKGEN1;
-    }
-
-    impl NotGclkInput for Gclk1 {}
-
-    macro_rules! impl_gclk1_source {
-        ($GclkNum:ident) => {
-            impl<T, N> GclkSource<$GclkNum> for Enabled<super::Gclk1<T>, N>
-            where
-                T: GclkSourceMarker,
-                N: Counter,
-            {
-                type Type = Gclk1;
-            }
-        };
-    }
-
-    impl_gclk1_source!(Gclk0);
-
-    seq!(N in 2..=11 {
-        impl_gclk1_source!(Gclk #N);
-    });
-
-    seq!(N in 2..=11 {
-        /// Type which serves as a source marker for the corresponding
-        /// [`super::Gclk`] and provides numerical identity for it
+seq!(N in 2..=11 {
+    paste! {
+        /// Type-level variant representing the identity of the corresponding GCLK
         ///
-        /// Standard division factor, see [`GclkDiv`]
-        pub enum Gclk #N {}
-        impl Sealed for Gclk #N {}
-        impl NotGclk0 for Gclk #N {}
-        impl NotGclk1 for Gclk #N {}
-        impl GclkNum for Gclk #N {
+        /// This type is a member of several [type-level enums]. See the documentation
+        /// on [type-level enums] for more details on the pattern.
+        ///
+        /// [type-level enums]: crate::typelevel#type-level-enum
+        pub enum [<Gclk N Id>] {}
+        impl Sealed for [<Gclk N Id>] {}
+        impl GclkId for [<Gclk N Id>] {
+            const DYN: DynGclkId = DynGclkId::Gclk~N;
             const NUM: usize = N;
             type DividerType = GclkDiv;
         }
-    });
-}
+    }
+});
 
 //==============================================================================
 // Div
@@ -472,34 +462,83 @@ impl GclkDivider for GclkDiv {
 }
 
 //==============================================================================
-// GclkSource
+// GclkSourceId
 //==============================================================================
 
-/// Trait generalizing over the markers for [`GclkSources`](GclkSource)
-pub trait GclkSourceMarker: SourceMarker {
-    /// Associated constant describing a source that is feeding the [`Gclk`]
-    ///
-    /// Expressed by a low-level enum variant (used for a HW write) provided by
-    /// a PAC in [`genctrl::SRC_A`][crate::pac::gclk::genctrl::SRC_A]
-    const GCLK_SRC: GclkSourceEnum;
+/// Value-level enum of GCLK sources
+///
+/// This is the value-level equivalent of the [`GclkSourceId`]
+/// [type-level enum]. It lists all possible [`Source`]s for each [`Gclk`].
+///
+/// [type-level enum]: crate::typelevel#type-level-enum
+#[allow(missing_docs)]
+pub enum DynGclkSourceId {
+    Dfll,
+    Dpll0,
+    Dpll1,
+    Gclk1,
+    GclkIn,
+    OscUlp32k,
+    Xosc0,
+    Xosc1,
+    Xosc32k,
 }
 
-/// Trait generalizing over the clock signal source for a [`Gclk`]
-pub trait GclkSource<G: GclkNum>: Source {
-    /// Associated source marker type
-    type Type: GclkSourceMarker;
-}
-
-impl<G, T, N> Source for Enabled<Gclk<G, T>, N>
-where
-    G: GclkNum,
-    T: GclkSourceMarker,
-    N: Counter,
-{
-    #[inline]
-    fn freq(&self) -> Hertz {
-        self.0.freq()
+impl From<DynGclkSourceId> for SRC_A {
+    fn from(source: DynGclkSourceId) -> Self {
+        use DynGclkSourceId::*;
+        use SRC_A::*;
+        match source {
+            Dfll => DFLL,
+            Dpll0 => DPLL0,
+            Dpll1 => DPLL1,
+            Gclk1 => GCLKGEN1,
+            GclkIn => GCLKIN,
+            OscUlp32k => OSCULP32K,
+            Xosc0 => XOSC0,
+            Xosc1 => XOSC1,
+            Xosc32k => XOSC32K,
+        }
     }
+}
+
+/// Type-level `enum` for GCLK sources
+///
+/// See the documentation / on [type-level enums] for more details on the
+/// pattern.
+///
+/// [type-level enums]: crate::typelevel#type-level-enum
+pub trait GclkSourceId {
+    /// Corresponding variant of [`DynGclkSourceId`]
+    const DYN: DynGclkSourceId;
+}
+
+impl GclkSourceId for DfllId {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Dfll;
+}
+impl GclkSourceId for Dpll0Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll0;
+}
+impl GclkSourceId for Dpll1Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Dpll1;
+}
+impl GclkSourceId for Gclk1Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Gclk1;
+}
+impl GclkSourceId for GclkInId {
+    const DYN: DynGclkSourceId = DynGclkSourceId::GclkIn;
+}
+impl GclkSourceId for OscUlp32kId {
+    const DYN: DynGclkSourceId = DynGclkSourceId::OscUlp32k;
+}
+impl GclkSourceId for Xosc0Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Xosc0;
+}
+impl GclkSourceId for Xosc1Id {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Xosc1;
+}
+impl GclkSourceId for Xosc32kId {
+    const DYN: DynGclkSourceId = DynGclkSourceId::Xosc32k;
 }
 
 //==============================================================================
@@ -509,18 +548,18 @@ where
 /// This struct represents a disabled [`Gclk`] - generic clock generator
 ///
 /// It is generic over:
-/// - a numeric variant (available variants: [`GclkNum`] implementors - eg.
-///   [`marker::Gclk3`])
+/// - a numeric variant (available variants: [`GclkId`] implementors - eg.
+///   [`GclkId3`])
 /// - a current signal source (expressed via source's marker type)
-pub struct Gclk<G, T>
+pub struct Gclk<G, I>
 where
-    G: GclkNum,
-    T: GclkSourceMarker,
+    G: GclkId,
+    I: GclkSourceId,
 {
     /// Unique [`GclkToken`]
     token: GclkToken<G>,
     /// Clock source feeding the [`Gclk`]
-    src: PhantomData<T>,
+    src: PhantomData<I>,
     /// Frequency of the clock source [`Gclk.src`] feeding the [`Gclk`]
     src_freq: Hertz,
     /// [`Gclk`] divider, modifying the [`Gclk.src_freq`]uency; affecting the
@@ -530,18 +569,29 @@ where
     improve_duty_cycle: bool,
 }
 
-impl<G, T> Gclk<G, T>
+pub type EnabledGclk<G, I, N = U0> = Enabled<Gclk<G, I>, N>;
+
+seq!(G in 0..=11 {
+    paste! {
+        /// Type alias for the corresponding [`Gclk`]
+        pub type Gclk~G<I> = Gclk<[<Gclk G Id>], I>;
+
+        pub type EnabledGclk~G<I, N = U0> = EnabledGclk<[<Gclk G Id>], I, N>;
+    }
+});
+
+impl<G, I> Gclk<G, I>
 where
-    G: GclkNum,
-    T: GclkSourceMarker,
+    G: GclkId,
+    I: GclkSourceId,
 {
     /// Create a new [`Gclk`]
     ///
     /// Hardware calls are deferred until the call to [`Gclk::enable`]
     #[inline]
-    pub fn new<S>(token: GclkToken<G>, source: S) -> (Gclk<G, T>, S::Inc)
+    pub fn new<S>(token: GclkToken<G>, source: S) -> (Gclk<G, I>, S::Inc)
     where
-        S: GclkSource<G, Type = T> + Increment,
+        S: Source<Id = I> + Increment,
     {
         let src_freq = source.freq();
         let improve_duty_cycle = false;
@@ -559,7 +609,7 @@ where
     #[inline]
     pub fn free<S>(self, source: S) -> (GclkToken<G>, S::Dec)
     where
-        S: GclkSource<G, Type = T> + Decrement,
+        S: Source<Id = I> + Decrement,
     {
         (self.token, source.dec())
     }
@@ -569,13 +619,21 @@ where
     /// Provided a [`GclkSource`] the [`Gclk`] is updated,
     /// the old clock source token released and returned
     #[inline]
-    pub fn swap<Old, New>(self, old: Old, new: New) -> (Gclk<G, New::Type>, Old::Dec, New::Inc)
+    pub fn swap<Old, New>(self, old: Old, new: New) -> (Gclk<G, New::Id>, Old::Dec, New::Inc)
     where
-        Old: GclkSource<G, Type = T> + Decrement,
-        New: GclkSource<G> + Increment,
+        Old: Source<Id = I> + Decrement,
+        New: Source + Increment,
+        New::Id: GclkSourceId,
     {
-        let (token, old) = self.free(old);
-        let (config, new) = Gclk::new(token, new);
+        let config = Gclk {
+            token: self.token,
+            src: PhantomData,
+            src_freq: new.freq(),
+            div: self.div,
+            improve_duty_cycle: self.improve_duty_cycle,
+        };
+        let old = old.dec();
+        let new = new.inc();
         (config, old, new)
     }
 
@@ -622,8 +680,8 @@ where
     /// Enabling a [`Gclk`] modifies hardware to match the configuration
     /// stored within.
     #[inline]
-    pub fn enable(mut self) -> Enabled<Gclk<G, T>, U0> {
-        self.token.set_source(T::GCLK_SRC);
+    pub fn enable(mut self) -> EnabledGclk<G, I> {
+        self.token.set_source(I::DYN);
         self.token.improve_duty_cycle(self.improve_duty_cycle);
         self.token.set_div(self.div);
         self.token.enable();
@@ -635,10 +693,10 @@ where
 ///
 /// Provide methods for enable and disable gclk_out to
 /// [`GclkOutSource`][super::sources::GclkOutSource]
-impl<G, T, N> Enabled<Gclk<G, T>, N>
+impl<G, I, N> EnabledGclk<G, I, N>
 where
-    G: GclkNum,
-    T: GclkSourceMarker,
+    G: GclkId,
+    I: GclkSourceId,
     N: Counter,
 {
     /// Enable the [`Gclk`] clock output
@@ -660,21 +718,21 @@ where
     }
 }
 
-impl<G, T> Enabled<Gclk<G, T>, U0>
+impl<G, I> EnabledGclk<G, I>
 where
-    G: GclkNum,
-    T: GclkSourceMarker,
+    G: GclkId,
+    I: GclkSourceId,
 {
     /// Disable the [`Gclk`], possible
     /// when nothing depends on the `Gclk`
     #[inline]
-    pub fn disable(mut self) -> Gclk<G, T> {
+    pub fn disable(mut self) -> Gclk<G, I> {
         self.0.token.disable();
         self.0
     }
 }
 
-impl<T: GclkSourceMarker> Enabled<Gclk0<T>, U1> {
+impl<I: GclkSourceId> EnabledGclk0<I, U1> {
     /// Swap source for [`Gclk0`]
     ///
     /// [`Gclk0`] is special since it always has `Mclk`
@@ -685,10 +743,11 @@ impl<T: GclkSourceMarker> Enabled<Gclk0<T>, U1> {
         self,
         old: Old,
         new: New,
-    ) -> (Enabled<Gclk0<New::Type>, U1>, Old::Dec, New::Inc)
+    ) -> (EnabledGclk0<New::Id, U1>, Old::Dec, New::Inc)
     where
-        Old: GclkSource<marker::Gclk0, Type = T> + Decrement,
-        New: GclkSource<marker::Gclk0> + Increment,
+        Old: Source<Id = I> + Decrement,
+        New: Source + Increment,
+        New::Id: GclkSourceId,
     {
         let (config, old, new) = self.0.swap(old, new);
         (config.enable().inc(), old, new)
@@ -699,7 +758,9 @@ impl<T: GclkSourceMarker> Enabled<Gclk0<T>, U1> {
     /// See [`GclkDiv`] for possible divider factors
     #[inline]
     pub fn div(self, div: GclkDiv) -> Self {
-        Enabled::new(self.0.div(div))
+        let mut config = self.0.div(div);
+        config.token.set_div(div);
+        Enabled::new(config)
     }
 
     /// When dividing an input clock with a odd division factor the duty-cycle
@@ -707,39 +768,52 @@ impl<T: GclkSourceMarker> Enabled<Gclk0<T>, U1> {
     /// resulting generator clock
     #[inline]
     pub fn improve_duty_cycle(self, flag: bool) -> Self {
-        Enabled::new(self.0.improve_duty_cycle(flag))
+        let mut config = self.0.improve_duty_cycle(flag);
+        config.token.improve_duty_cycle(flag);
+        Enabled::new(config)
     }
 }
 
 //==============================================================================
-// Gclk aliases
+// Source
 //==============================================================================
 
-seq!(G in 0..=11 {
-    /// Alias of [`Gclk`]`<marker::GclkX, _>`
-    pub type Gclk #G<S> = Gclk<marker::Gclk #G, S>;
-});
+impl<G, I, N> Source for EnabledGclk<G, I, N>
+where
+    G: GclkId,
+    I: GclkSourceId,
+    N: Counter,
+{
+    type Id = G;
+
+    #[inline]
+    fn freq(&self) -> Hertz {
+        self.0.freq()
+    }
+}
 
 //==============================================================================
 // Gclks
 //==============================================================================
 
 seq!(N in 1..=11 {
-    /// [`Gclk`] tokens ensuring there only exists one instance of each [`Gclk`]
-    pub struct Tokens {
-        #( /// GclkToken for Gclk#N
-           pub gclk #N: GclkToken<marker::Gclk #N>, )*
-    }
+    paste! {
+        /// [`Gclk`] tokens ensuring there only exists one instance of each [`Gclk`]
+        pub struct Tokens {
+            #( /// GclkToken for the corresponding GCLK
+               pub gclk~N: GclkToken<[<Gclk N Id>]>, )*
+        }
 
-    impl Tokens {
-        #[inline]
-        pub(super) fn new(nvmctrl: &mut NVMCTRL) -> Self {
-            // Use auto wait states
-            nvmctrl.ctrla.modify(|_, w| w.autows().set_bit());
-            // Return all tokens when initially created
-            unsafe {
-                Tokens {
-                    #( gclk #N: GclkToken::new(), )*
+        impl Tokens {
+            #[inline]
+            pub(super) fn new(nvmctrl: &mut NVMCTRL) -> Self {
+                // Use auto wait states
+                nvmctrl.ctrla.modify(|_, w| w.autows().set_bit());
+                // Return all tokens when initially created
+                unsafe {
+                    Tokens {
+                        #( gclk~N: GclkToken::new(), )*
+                    }
                 }
             }
         }
