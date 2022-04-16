@@ -9,7 +9,6 @@ use crate::clock::v2::pclk::{ids::*, Pclk, PclkSourceId};
 use crate::pac::gclk::genctrl::SRC_A::*;
 use crate::pac::gclk::pchctrl::GEN_A::*;
 use crate::pac::{self, GCLK, MCLK, NVMCTRL, OSC32KCTRL, OSCCTRL};
-use crate::sercom::v2::*;
 use crate::time::{Hertz, MegaHertz};
 
 pub type ClockGenId = pac::gclk::pchctrl::GEN_A;

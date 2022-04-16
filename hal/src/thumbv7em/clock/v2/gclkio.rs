@@ -61,7 +61,7 @@ use paste::paste;
 use seq_macro::seq;
 use typenum::U0;
 
-use crate::gpio::v2::{self as gpio, AlternateM, AnyPin, Pin, PinId};
+use crate::gpio::{self, AlternateM, AnyPin, Pin, PinId};
 use crate::time::Hertz;
 use crate::typelevel::{Counter, Decrement, Increment, PrivateDecrement, PrivateIncrement, Sealed};
 
