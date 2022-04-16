@@ -223,10 +223,12 @@ pad_table!(
         D: (Sercom5, Pad1, IoSet6) + I2C,
     }
     PB08 {
-        D: (Sercom4, Pad0, IoSet2),
+        // According to testing, PB08 is I2C-capable. This disagrees with datasheet table 6-8.
+        D: (Sercom4, Pad0, IoSet2) + I2C,
     }
     PB09 {
-        D: (Sercom4, Pad1, IoSet2),
+        // According to testing, PB09 is I2C-capable. This disagrees with datasheet table 6-8.
+        D: (Sercom4, Pad1, IoSet2) + I2C,
     }
     PB10 {
         D: (Sercom4, Pad2, IoSet2),
