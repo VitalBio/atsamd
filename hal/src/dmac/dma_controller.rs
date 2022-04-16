@@ -20,7 +20,6 @@
 //! deinitialize the DMAC and return the underlying PAC object.
 
 use modular_bitfield::prelude::*;
-use paste::paste;
 use seq_macro::seq;
 
 #[cfg(any(feature = "samd11", feature = "samd21"))]
@@ -52,24 +51,22 @@ pub trait ChId {
 macro_rules! define_channels_struct {
     ($num_channels:literal) => {
         seq!(N in 0..$num_channels {
-            paste! {
+            #(
+                /// Type alias for a channel number
+                pub struct Ch~N;
+
+                impl ChId for Ch~N {
+                    const U8: u8 = N;
+                    const USIZE: usize = N;
+                }
+            )*
+
+            /// Struct generating individual handles to each DMA channel
+            pub struct Channels(
                 #(
-                    /// Type alias for a channel number
-                    pub struct [<Ch N>];
-
-                    impl ChId for [<Ch N>] {
-                        const U8: u8 = N;
-                        const USIZE: usize = N;
-                    }
+                    pub Channel<Ch~N, Uninitialized>,
                 )*
-
-                /// Struct generating individual handles to each DMA channel
-                pub struct Channels(
-                    #(
-                        pub Channel<[<Ch N>], Uninitialized>,
-                    )*
-                );
-            }
+            );
         });
     };
 }

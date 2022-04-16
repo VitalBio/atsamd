@@ -39,7 +39,7 @@
 //! > use cortex_m::singleton;
 //! >
 //! > let hasharea: &'static mut HashArea =
-//! >     singleton!(: HashArea = HashArea::default()).unwrap();
+//! > singleton!(: HashArea = HashArea::default()).unwrap();
 //! > ```
 
 //!
@@ -471,6 +471,7 @@ bitfield::bitfield! {
     /// all the regions or via the `bitmask` argument
     /// narrow it down to the specific set of [`RegionNum`]
     /// of interest.
+    #[derive(Default)]
     pub struct Interrupt(u32);
     impl Debug;
     u8;
@@ -518,11 +519,6 @@ impl Interrupt {
     #[inline]
     pub fn get_rhc_int(&self) -> RegionHashCompleted {
         RegionHashCompleted::from_bits_truncate(self.get_rhc())
-    }
-}
-impl Default for Interrupt {
-    fn default() -> Self {
-        Interrupt(0)
     }
 }
 
@@ -1234,9 +1230,9 @@ pub trait RegionNum: Sealed {
 seq!(N in 0..=3 {
     paste! {
         #[doc = "ICM Region " N]
-        pub enum Region #N {}
-        impl Sealed for Region #N {}
-        impl RegionNum for Region #N {
+        pub enum Region~N {}
+        impl Sealed for Region~N {}
+        impl RegionNum for Region~N {
             const NUM: usize = N;
             #[allow(clippy::identity_op)]
             #[allow(clippy::erasing_op)]
@@ -1337,8 +1333,8 @@ impl MainRegionDesc<Region0> {
 seq!(N in 0..=3 {
     paste! {
         #[doc = "Create region descriptor " N]
-        impl MainRegionDesc<Region #N> {
-            const fn new_region #N() -> Self {
+        impl MainRegionDesc<Region~N> {
+            const fn new_region~N() -> Self {
                 MainRegionDesc {
                     num: PhantomData,
                     raddr: RegionAddress::default(),

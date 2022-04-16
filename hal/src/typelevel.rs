@@ -631,8 +631,7 @@
 //! you put back an instance of `P` exactly. The final use of [`Into`] is key
 //! here. It transforms the `SpecificPin` back into `P` itself.
 
-use typenum::{Bit, UInt, UTerm, Unsigned};
-
+use typenum::{Bit, UInt, Unsigned, U0};
 mod private {
     /// Super trait used to mark traits with an exhaustive set of
     /// implementations
@@ -724,3 +723,8 @@ impl<U: Unsigned, B: Bit> Sealed for UInt<U, B> {}
 
 /// Sealed trait implemented for [`UTerm`] type
 impl Sealed for UTerm {}
+/// Implement `Sealed` for [`U0`]
+impl Sealed for U0 {}
+
+/// Implement `Sealed` for all type-level, [`Unsigned`] integers *except* [`U0`]
+impl<U: Unsigned, B: Bit> Sealed for UInt<U, B> {}

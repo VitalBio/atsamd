@@ -2,9 +2,8 @@
 use crate::clock;
 #[rustfmt::skip]
 #[allow(deprecated)]
-use crate::gpio::v1;
-use crate::gpio::v2::*;
-use crate::hal::adc::{Channel, OneShot};
+use crate::gpio::*;
+use crate::ehal::adc::{Channel, OneShot};
 use crate::pac::{adc0, ADC0, ADC1, MCLK};
 use crate::time::Hertz;
 
@@ -316,20 +315,6 @@ macro_rules! adc_pins {
                fn channel() -> u8 { $CHAN }
             }
         )+
-    }
-}
-
-/// Implement [`Channel`] for [`v1::Pin`]s based on the implementations for
-/// `v2` [`Pin`]s
-#[allow(deprecated)]
-impl<I, A> Channel<A> for v1::Pin<I, v1::PfB>
-where
-    I: PinId,
-    Pin<I, AlternateB>: Channel<A, ID = u8>,
-{
-    type ID = u8;
-    fn channel() -> u8 {
-        Pin::<I, AlternateB>::channel()
     }
 }
 
