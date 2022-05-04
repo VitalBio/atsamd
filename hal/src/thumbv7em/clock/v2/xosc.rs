@@ -301,7 +301,7 @@ impl Sealed for ClockMode {}
 
 impl<X: XoscId> Mode<X> for ClockMode {
     const XTALEN: bool = false;
-    type XOut = ();
+    type XOut = XOut<X>;
     #[inline]
     fn current(&self) -> CrystalCurrent {
         CrystalCurrent::Zero
@@ -462,9 +462,11 @@ impl<X: XoscId> Xosc<X, ClockMode> {
     pub fn from_clock(
         token: XoscToken<X>,
         xin: impl Into<XIn<X>>,
+        xout: impl Into<XOut<X>>,
         src_freq: impl Into<Hertz>,
     ) -> Self {
         let xin = xin.into().into_floating_disabled();
+        let xout = xout.into().into_floating_disabled();
         let start_up_cycles = StartUp::CYCLE1;
         // Mimic default reset state
         let on_demand = true;
@@ -474,7 +476,7 @@ impl<X: XoscId> Xosc<X, ClockMode> {
             token,
             mode: ClockMode,
             xin,
-            xout: (),
+            xout,
             src_freq: src_freq.into(),
             start_up_cycles,
             on_demand,
