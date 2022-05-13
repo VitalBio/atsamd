@@ -656,8 +656,6 @@ impl<P: ValidPads> Config<P> {
         regs.set_dipo_dopo(P::DIPO_DOPO);
         #[cfg(any(feature = "samd11", feature = "samd21"))]
         regs.set_char_size(EightBit::BITS);
-        #[cfg(feature = "min-samd51g")]
-        regs.set_length(1);
         Self {
             regs,
             pads,

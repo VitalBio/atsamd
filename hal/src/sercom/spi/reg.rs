@@ -81,11 +81,6 @@ impl<S: Sercom> Registers<S> {
     pub fn set_op_mode(&mut self, mode: MODE_A, mssen: bool) {
         self.spi().ctrla.modify(|_, w| w.mode().variant(mode));
         self.spi().ctrlb.modify(|_, w| w.mssen().bit(mssen));
-        #[cfg(feature = "min-samd51g")]
-        self.spi().ctrlc.write(|w| unsafe {
-            w.data32b().data_trans_32bit();
-            w.icspace().bits(1)
-        });
         while self.spi().syncbusy.read().ctrlb().bit_is_set() {}
     }
 
