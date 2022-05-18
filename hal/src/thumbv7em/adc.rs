@@ -53,6 +53,7 @@ impl Adc<$ADC> {
         adc: $ADC,
         mclk: &mut MCLK,
         samples: SampleRate,
+        resolution: Resolution,
     ) -> Self {
         mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
         adc.ctrla.write(|w| w.swrst().set_bit());
@@ -60,7 +61,9 @@ impl Adc<$ADC> {
 
         // Find best prescaler to get close to target freq
         let freq = freq.into();
-        let ticks: u32 = clock.freq().0 / freq.0.max(1) / (12 + 5) / (1u32 << samples as u32);
+        let sample_ticks = 5 + 12; // 5 ticks for sample time + 1 tick for each of 12 bits
+        let num_samples = 1u32 << samples as u32;
+        let ticks: u32 = clock.freq().0 / freq.0.max(1) / sample_ticks / num_samples;
         let divider: u32 = {
             let next_pow = ticks.next_power_of_two();
             let prev_pow = (ticks >> 1).next_power_of_two();
@@ -102,6 +105,7 @@ impl Adc<$ADC> {
 
         let mut newadc = Self { adc };
         newadc.samples(samples);
+        newadc.resolution(resolution);
         newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
 
         newadc
@@ -122,6 +126,17 @@ impl Adc<$ADC> {
                     SAMPLENUM_A::_8 => 3,
                     _ => 4,
                 })
+            }
+        });
+        while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
+    }
+
+    /// Set the sample rate
+    pub fn division_coefficient(&mut self, coefficient: u8) {
+        let coefficient = if coefficient > 4 { 4 } else { coefficient }; // Can't be greater than 4
+        self.adc.avgctrl.modify(|_, w| {
+            unsafe {
+                w.adjres().bits(coefficient)
             }
         });
         while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
