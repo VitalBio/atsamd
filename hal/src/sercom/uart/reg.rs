@@ -354,7 +354,9 @@ impl<S: Sercom> Registers<S> {
         //     self.usart().ctrla.modify(|_, w| unsafe { w.form().bits(0) });
         // }
         self.usart().ctrla.modify(|_, w| w.txpo().txpo_3());
-        self.usart().ctrlc.modify(|_, w| unsafe { w.gtime().bits(guard_time) });
+        self.usart()
+            .ctrlc
+            .modify(|_, w| unsafe { w.gtime().bits(guard_time) });
     }
 
     /// Clear specified interrupt flags
@@ -434,6 +436,24 @@ impl<S: Sercom> Registers<S> {
 
         // Globally enable peripheral
         self.enable_peripheral(true);
+    }
+
+    #[inline]
+    pub(super) fn disable_rx(&mut self) {
+        let usart = self.usart();
+
+        // Disable RX
+        usart.ctrlb.modify(|_, w| w.rxen().clear_bit());
+        while usart.syncbusy.read().ctrlb().bit_is_set() {}
+    }
+
+    #[inline]
+    pub(super) fn enable_rx(&mut self) {
+        let usart = self.usart();
+
+        // Disable RX
+        usart.ctrlb.modify(|_, w| w.rxen().set_bit());
+        while usart.syncbusy.read().ctrlb().bit_is_set() {}
     }
 
     #[inline]
