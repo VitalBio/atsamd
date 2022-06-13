@@ -919,6 +919,18 @@ where
         Ok(self.read_flags())
     }
 
+    /// Disable RX
+    #[inline]
+    pub fn disable_rx(&mut self) {
+        self.config.as_mut().registers.disable_rx();
+    }
+
+    /// Enable RX
+    #[inline]
+    pub fn enable_rx(&mut self) {
+        self.config.as_mut().registers.enable_rx();
+    }
+
     /// Flush the RX buffer and clear RX errors.
     ///
     /// **Note**: The datasheet states that disabling the receiver (RXEN) clears
