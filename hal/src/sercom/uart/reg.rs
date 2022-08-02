@@ -347,6 +347,7 @@ impl<S: Sercom> Registers<S> {
     /// This causes a transmit enable pin to be driven high while the transmitter
     /// is active. The guard time causes the enable pin to remain high following
     /// the transmission. See datasheet for more information.
+    #[cfg(feature = "min-samd51g")]
     #[inline]
     pub(super) fn set_rs485_mode(&mut self, guard_time: u8) {
         // let form = self.usart().ctrla.read().form().bits();

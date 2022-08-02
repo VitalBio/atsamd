@@ -379,6 +379,7 @@ where
     /// This causes a transmit enable pin to be driven high while the transmitter
     /// is active. The guard time causes the enable pin to remain high following
     /// the transmission. See datasheet for more information.
+    #[cfg(feature = "min-samd51g")]
     #[inline]
     pub fn rs485_mode(mut self, guard_time: u8) -> Self {
         self.set_rs485_mode(guard_time);
@@ -389,6 +390,7 @@ where
     /// This causes a transmit enable pin to be driven high while the transmitter
     /// is active. The guard time causes the enable pin to remain high following
     /// the transmission. See datasheet for more information.
+    #[cfg(feature = "min-samd51g")]
     #[inline]
     pub fn set_rs485_mode(&mut self, guard_time: u8) {
         self.registers.set_rs485_mode(guard_time);
