@@ -14,9 +14,9 @@ use embedded_sdmmc::{TimeSource, Timestamp};
 #[cfg(feature = "rtic")]
 use fugit;
 #[cfg(feature = "rtic")]
-pub type Instant = fugit::Instant<u32, 1, 32_768>;
+pub type Instant = fugit::Instant<u32, 1, 48_000_000>;
 #[cfg(feature = "rtic")]
-pub type Duration = fugit::Duration<u32, 1, 32_768>;
+pub type Duration = fugit::Duration<u32, 1, 48_000_000>;
 #[cfg(feature = "rtic")]
 use rtic_monotonic::Monotonic;
 
