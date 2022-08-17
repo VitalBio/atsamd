@@ -3,24 +3,23 @@
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
-use crate::clock::GenericClockController;
 use crate::ehal::blocking::delay::{DelayMs, DelayUs};
 use crate::time::Hertz;
 
 /// System timer (SysTick) as a delay provider
 pub struct Delay {
-    sysclock: Hertz,
+    freq: Hertz,
     syst: SYST,
 }
 
 impl Delay {
     /// Configures the system timer (SysTick) as a delay provider
-    pub fn new(mut syst: SYST, clocks: &mut GenericClockController) -> Self {
+    pub fn new<F: Into<Hertz>>(mut syst: SYST, freq: F) -> Self {
         syst.set_clock_source(SystClkSource::Core);
 
         Delay {
             syst,
-            sysclock: clocks.gclk0().into(),
+            freq: freq.into(),
         }
     }
 
@@ -53,7 +52,7 @@ impl DelayUs<u32> for Delay {
         // The SysTick Reload Value register supports values between 1 and 0x00FFFFFF.
         const MAX_RVR: u32 = 0x00FF_FFFF;
 
-        let mut total_rvr = us * (self.sysclock.0 / 1_000_000);
+        let mut total_rvr = us * (self.freq.0 / 1_000_000);
 
         while total_rvr != 0 {
             let current_rvr = if total_rvr <= MAX_RVR {
