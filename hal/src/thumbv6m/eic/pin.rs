@@ -153,8 +153,8 @@ crate::paste::item! {
     #[cfg(feature = "unproven")]
     impl<GPIO, C> InputPin for [<$PadType $num>]<GPIO>
     where
-        GPIO: AnyPin<Mode = Input<C>>,
-        C: InputConfig,
+        GPIO: AnyPin<Mode = Interrupt<C>>,
+        C: InterruptConfig,
     {
         type Error = Infallible;
         #[inline]
