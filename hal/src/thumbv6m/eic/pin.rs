@@ -1,7 +1,11 @@
+#[cfg(feature = "unproven")]
+use crate::ehal::digital::v2::InputPin;
 use crate::gpio::{
     self, pin::*, AnyPin, FloatingInterrupt, PinId, PinMode, PullDownInterrupt, PullUpInterrupt,
 };
 use crate::pac;
+#[cfg(feature = "unproven")]
+use core::convert::Infallible;
 
 /// The EicPin trait makes it more ergonomic to convert a gpio pin into an EIC
 /// pin. You should not implement this trait for yourself; only the
@@ -143,6 +147,23 @@ crate::paste::item! {
                     _ => unreachable!(),
                 }
             });
+        }
+    }
+
+    #[cfg(feature = "unproven")]
+    impl<GPIO, C> InputPin for [<$PadType $num>]<GPIO>
+    where
+        GPIO: AnyPin<Mode = Input<C>>,
+        C: InputConfig,
+    {
+        type Error = Infallible;
+        #[inline]
+        fn is_high(&self) -> Result<bool, Self::Error> {
+            self._pin.is_high()
+        }
+        #[inline]
+        fn is_low(&self) -> Result<bool, Self::Error> {
+            self._pin.is_low()
         }
     }
 
