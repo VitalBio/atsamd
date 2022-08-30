@@ -90,9 +90,9 @@ impl GclkIo<Gclk1Id> for gpio::PA15 {}
 impl GclkIo<Gclk2Id> for gpio::PA16 {}
 impl GclkIo<Gclk3Id> for gpio::PA17 {}
 
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk4Id> for gpio::PA20 {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk5Id> for gpio::PA21 {}
 impl GclkIo<Gclk6Id> for gpio::PA22 {}
 impl GclkIo<Gclk7Id> for gpio::PA23 {}
@@ -101,28 +101,28 @@ impl GclkIo<Gclk0Id> for gpio::PA27 {}
 impl GclkIo<Gclk0Id> for gpio::PA28 {}
 impl GclkIo<Gclk0Id> for gpio::PA30 {}
 
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk4Id> for gpio::PB10 {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk5Id> for gpio::PB11 {}
 
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk6Id> for gpio::PB12 {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk7Id> for gpio::PB13 {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk0Id> for gpio::PB14 {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk1Id> for gpio::PB15 {}
 
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk2Id> for gpio::PB16 {}
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 impl GclkIo<Gclk3Id> for gpio::PB17 {}
 
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk0Id> for gpio::PB22 {}
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 impl GclkIo<Gclk1Id> for gpio::PB23 {}
 
 //==============================================================================

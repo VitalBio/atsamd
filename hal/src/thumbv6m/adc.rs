@@ -186,7 +186,7 @@ adc_pins! {
     PA15: 7
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 adc_pins! {
     PA02: 0,
     PA03: 1,
@@ -200,7 +200,7 @@ adc_pins! {
     PA11: 19
 }
 
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 adc_pins! {
     PB02: 10,
     PB03: 11,
@@ -208,7 +208,7 @@ adc_pins! {
     PB09: 3
 }
 
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 adc_pins! {
     PB00: 8,
     PB01: 9,

@@ -22,7 +22,7 @@
 use modular_bitfield::prelude::*;
 use seq_macro::seq;
 
-#[cfg(any(feature = "samd11", feature = "samd21"))]
+#[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
 pub use crate::pac::dmac::chctrlb::{
     LVL_A as PriorityLevel, TRIGACT_A as TriggerAction, TRIGSRC_A as TriggerSource,
 };
@@ -134,7 +134,7 @@ impl DmaController {
     #[inline]
     pub fn init(mut dmac: DMAC, _pm: &mut PM) -> Self {
         // ----- Initialize clocking ----- //
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         {
             // Enable clocking
             _pm.ahbmask.modify(|_, w| w.dmac_().set_bit());
@@ -230,7 +230,7 @@ impl DmaController {
 
         Self::swreset(&mut self.dmac);
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         {
             // Disable the DMAC clocking
             _pm.apbbmask.modify(|_, w| w.dmac_().clear_bit());

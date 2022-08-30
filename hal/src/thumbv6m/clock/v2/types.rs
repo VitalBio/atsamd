@@ -20,7 +20,7 @@
 use crate::typelevel::Sealed;
 
 pub use crate::sercom::{Sercom0, Sercom1, Sercom2, Sercom3};
-#[cfg(feature = "min-samd21g")]
+#[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
 pub use crate::sercom::{Sercom4, Sercom5};
 
 macro_rules! create_types {
@@ -66,7 +66,7 @@ create_types!(SysCtrl);
 create_types!(Tcc0Tcc1, Tcc0, Tcc1);
 create_types!(Tcc2Tc3, Tcc2, Tc3);
 create_types!(Tc4Tc5, Tc4, Tc5);
-#[cfg(feature = "min-samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
 create_types!(Tc6Tc7, Tc6, Tc7);
 create_types!(Usb);
 create_types!(Wdt);

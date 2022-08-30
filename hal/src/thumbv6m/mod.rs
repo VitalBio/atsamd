@@ -21,7 +21,7 @@ pub mod watchdog;
 
 #[cfg(feature = "usb")]
 #[cfg(all(
-    feature = "samd21",
+    any(feature = "samda1", feature = "samd21"),
     not(any(feature = "samd21el", feature = "samd21gl"))
 ))]
 pub mod usb;

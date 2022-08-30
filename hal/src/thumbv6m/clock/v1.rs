@@ -162,7 +162,7 @@ impl GenericClockController {
         let mut state = State { gclk };
 
         set_flash_to_half_auto_wait_state(nvmctrl);
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samda1", feature = "samd21"))]
         set_flash_manual_write(nvmctrl);
         enable_gclk_apb(pm);
         if use_external_crystal {
@@ -225,11 +225,11 @@ impl GenericClockController {
         let mut state = State { gclk };
 
         // No wait states needed <= 24 MHz @ 3.3v (ref. 37.12 NVM characteristics)
-        #[cfg(feature = "samd21")]
+        #[cfg(any(feature = "samda1", feature = "samd21"))]
         set_flash_manual_write(nvmctrl);
 
         // Get rid of unused warning
-        #[cfg(not(feature = "samd21"))]
+        #[cfg(not(any(feature = "samda1", feature = "samd21")))]
         let _ = nvmctrl;
 
         enable_gclk_apb(pm);
@@ -440,19 +440,21 @@ clock_generator!(
     (ac_dig, AcDigClock, AC_DIG),
     (dac, DacClock, DAC),
 );
-// samd21
-#[cfg(feature = "samd21")]
+// samd21/samda1
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 clock_generator!(
     (tcc0_tcc1, Tcc0Tcc1Clock, TCC0_TCC1, Tcc0Tcc1),
     (tcc2_tc3, Tcc2Tc3Clock, TCC2_TC3, Tcc2Tc3),
     (tc4_tc5, Tc4Tc5Clock, TC4_TC5, Tc4Tc5),
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21j"))]
     (tc6_tc7, Tc6Tc7Clock, TC6_TC7, Tc6Tc7),
     (sercom0_core, Sercom0CoreClock, SERCOM0_CORE, Sercom0),
     (sercom1_core, Sercom1CoreClock, SERCOM1_CORE, Sercom1),
     (sercom2_core, Sercom2CoreClock, SERCOM2_CORE, Sercom2),
     (sercom3_core, Sercom3CoreClock, SERCOM3_CORE, Sercom3),
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     (sercom4_core, Sercom4CoreClock, SERCOM4_CORE, Sercom4),
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     (sercom5_core, Sercom5CoreClock, SERCOM5_CORE, Sercom5),
     (usb, UsbClock, USB, Usb),
     (rtc, RtcClock, RTC, Rtc),
@@ -490,7 +492,7 @@ fn set_flash_to_half_auto_wait_state(nvmctrl: &mut NVMCTRL) {
 }
 
 /// Prevent automatic writes to flash by pointers to flash area
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 fn set_flash_manual_write(nvmctrl: &mut NVMCTRL) {
     nvmctrl.ctrlb.modify(|_, w| w.manw().set_bit());
 }
@@ -521,10 +523,13 @@ pub fn enable_internal_32kosc(sysctrl: &mut SYSCTRL) {
 /// Turn on the external 32hkz oscillator
 pub fn enable_external_32kosc(sysctrl: &mut SYSCTRL) {
     sysctrl.xosc32k.modify(|_, w| {
+        #[cfg(not(feature = "samda1"))]
         unsafe {
             // 6 here means: use 64k cycles of OSCULP32k to start up this oscillator
             w.startup().bits(6);
         }
+        #[cfg(feature = "samda1")]
+        w.startup().bits(6);
         w.ondemand().clear_bit();
         // Enable 32khz output
         w.en32k().set_bit();
@@ -617,7 +622,7 @@ fn configure_and_enable_dfll48m(sysctrl: &mut SYSCTRL, use_external_crystal: boo
     // and finally enable it!
     sysctrl.dfllctrl.modify(|_, w| w.enable().set_bit());
 
-    #[cfg(feature = "samd21")]
+    #[cfg(any(feature = "samda1", feature = "samd21"))]
     if use_external_crystal {
         // wait for lock
         while sysctrl.pclksr.read().dflllckc().bit_is_clear()

@@ -169,6 +169,7 @@ impl<T, N: PrivateDecrement> PrivateDecrement for Enabled<T, N> {
 impl<T, N: Counter> Counter for Enabled<T, N> {}
 
 /// Test
+#[cfg(feature="min-samd51j")] // due to PB14 pin usage
 pub fn test() {
     use crate::{
         clock::v2::{

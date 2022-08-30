@@ -1,5 +1,5 @@
 //! Define a trait to track the [`CharSize`], which represents the [`Config`]
-//! [`Size`] for SAMD11 and SAMD21 chips
+//! [`Size`] for SAMD11 and SAMD21/SAMDA1 chips
 //!
 //! [`Config`]: super::Config
 //! [`Size`]: super::Size

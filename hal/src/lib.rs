@@ -13,6 +13,15 @@ compile_error!(
     specifying the `library` feature"
 );
 
+#[cfg(feature = "samda1e")]
+pub use atsamda1e as pac;
+
+#[cfg(feature = "samda1g")]
+pub use atsamda1g as pac;
+
+#[cfg(feature = "samda1j")]
+pub use atsamda1j as pac;
+
 #[cfg(feature = "samd11c")]
 pub use atsamd11c as pac;
 
@@ -105,13 +114,13 @@ compile_error!("'usb' is enabled, but USB isn't supported on SAMD11");
 
 #[cfg(all(
     feature = "usb",
-    not(any(feature = "samd21", feature = "min-samd51g", feature = "library"))
+    not(any(feature = "samda1", feature = "samd21", feature = "min-samd51g", feature = "library"))
 ))]
 compile_error!("The 'usb' feature is enabled, but not a chip with USB support");
 
-#[cfg(any(feature = "samd11", feature = "samd21"))]
+#[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
 pub mod thumbv6m;
-#[cfg(any(feature = "samd11", feature = "samd21"))]
+#[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
 pub use crate::thumbv6m::*;
 
 #[cfg(feature = "min-samd51g")]

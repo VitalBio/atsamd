@@ -4,7 +4,7 @@ use crate::pac::port::{
     PMUX0_ as PMUX, WRCONFIG,
 };
 
-#[cfg(feature = "min-samd51g")]
+#[cfg(any(feature = "samda1", feature = "min-samd51g"))]
 use crate::pac::port::group::{
     CTRL, DIR, DIRCLR, DIRSET, DIRTGL, IN, OUT, OUTCLR, OUTSET, OUTTGL, PINCFG, PMUX, WRCONFIG,
 };
@@ -122,7 +122,7 @@ impl From<DynPinMode> for ModeFields {
                     G => {
                         fields.pmux = 6;
                     }
-                    #[cfg(any(feature = "samd21", feature = "min-samd51g"))]
+                    #[cfg(any(feature = "samda1", feature = "samd21", feature = "min-samd51g"))]
                     H => {
                         fields.pmux = 7;
                     }
@@ -163,8 +163,8 @@ impl From<DynPinMode> for ModeFields {
 
 /// Represent the [`PORT`] register block
 ///
-/// The SAMx5x PACs have a GROUP type to represent each [`PORT`] group, but the
-/// SAMD11 and SAMD21 PACs do not. Manually re-implement it here.
+/// The SAMx5x and SAMDA1 PACs have a GROUP type to represent each [`PORT`] group,
+/// but the SAMD11 and SAMD21 PACs do not. Manually re-implement it here.
 #[repr(C)]
 #[allow(clippy::upper_case_acronyms)]
 pub(super) struct GROUP {
@@ -231,7 +231,7 @@ pub(super) unsafe trait RegisterInterface {
     fn group(&self) -> &GROUP {
         let offset = match self.id().group {
             DynGroup::A => 0,
-            #[cfg(any(feature = "samd21", feature = "min-samd51g"))]
+            #[cfg(any(feature = "min-samda1g", feature = "samd21", feature = "min-samd51g"))]
             DynGroup::B => 1,
             #[cfg(feature = "min-samd51n")]
             DynGroup::C => 2,

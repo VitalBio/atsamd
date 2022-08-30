@@ -48,7 +48,7 @@ use crate::gpio::OptionalPinId;
 use crate::gpio::{AnyPin, OptionalPin, Pin, PinId, PinMode};
 use crate::typelevel::{NoneT, Sealed};
 
-#[cfg(any(feature = "samd11", feature = "samd21"))]
+#[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
 #[path = "pad/impl_pad_thumbv6m.rs"]
 mod impl_pad;
 

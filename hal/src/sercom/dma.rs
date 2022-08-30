@@ -100,7 +100,7 @@ impl<C: i2c::AnyConfig> I2c<C> {
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
@@ -148,7 +148,7 @@ impl<C: i2c::AnyConfig> I2c<C> {
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
@@ -224,7 +224,7 @@ where
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
@@ -262,7 +262,7 @@ where
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
@@ -330,7 +330,7 @@ where
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
@@ -368,7 +368,7 @@ where
         #[cfg(feature = "min-samd51g")]
         let trigger_action = TriggerAction::BURST;
 
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         let trigger_action = TriggerAction::BEAT;
 
         // SAFETY: This is safe because the of the `'static` bound check
