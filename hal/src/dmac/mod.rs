@@ -284,7 +284,7 @@ macro_rules! with_num_channels {
     };
 }
 
-#[cfg(all(feature = "samd21", feature = "max-channels"))]
+#[cfg(all(any(feature = "samda1", feature = "samd21"), feature = "max-channels"))]
 #[macro_export]
 macro_rules! with_num_channels {
     ($some_macro:ident) => {
@@ -308,7 +308,7 @@ macro_rules! with_num_channels {
     };
 }
 
-#[cfg(all(feature = "samd21", not(feature = "max-channels")))]
+#[cfg(all(any(feature = "samda1", feature = "samd21"), not(feature = "max-channels")))]
 #[macro_export]
 macro_rules! with_num_channels {
     ($some_macro:ident) => {

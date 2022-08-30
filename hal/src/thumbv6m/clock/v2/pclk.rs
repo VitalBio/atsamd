@@ -192,14 +192,14 @@ macro_rules! with_pclk_types_ids {
             (Sercom1 = 21, sercom1)
             (Sercom2 = 22, sercom2)
             (Sercom3 = 23, sercom3)
-            #[cfg(feature = "min-samd21g")]
+            #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
             (Sercom4 = 24, sercom4)
-            #[cfg(feature = "min-samd21g")]
+            #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
             (Sercom5 = 25, sercom5)
             (Tcc0Tcc1 = 26, tcc0_tcc1)
             (Tcc2Tc3 = 27, tcc2_tc3)
             (Tc4Tc5 = 28, tc4_tc5)
-            #[cfg(feature = "min-samd21j")]
+            #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
             (Tc6Tc7 = 29, tc6_tc7)
             (Adc = 30, adc)
             (AcDig = 31, ac_dig)

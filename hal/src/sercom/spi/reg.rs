@@ -4,12 +4,12 @@ use embedded_hal::spi;
 
 #[cfg(any(feature = "samd11", feature = "samd21"))]
 use crate::pac::sercom0::SPI;
-#[cfg(feature = "min-samd51g")]
+#[cfg(any(feature = "samda1", feature = "min-samd51g"))]
 use crate::pac::sercom0::SPIM;
 
 #[cfg(any(feature = "samd11", feature = "samd21"))]
 use crate::pac::sercom0::spi::ctrla::MODE_A;
-#[cfg(feature = "min-samd51g")]
+#[cfg(any(feature = "samda1", feature = "min-samd51g"))]
 use crate::pac::sercom0::spim::ctrla::MODE_A;
 
 use crate::sercom::Sercom;
@@ -42,7 +42,7 @@ impl<S: Sercom> Registers<S> {
         self.sercom.spi()
     }
 
-    #[cfg(feature = "min-samd51g")]
+    #[cfg(any(feature = "samda1", feature = "min-samd51g"))]
     #[inline]
     pub fn spi(&self) -> &SPIM {
         self.sercom.spim()
@@ -65,7 +65,13 @@ impl<S: Sercom> Registers<S> {
     #[inline]
     pub fn set_dipo_dopo(&mut self, dipo_dopo: (u8, u8)) {
         let (dipo, dopo) = dipo_dopo;
+        #[cfg(not(feature = "samda1"))]
         self.spi().ctrla.modify(|_, w| unsafe {
+            w.dipo().bits(dipo);
+            w.dopo().bits(dopo)
+        });
+        #[cfg(feature = "samda1")]
+        self.spi().ctrla.modify(|_, w| {
             w.dipo().bits(dipo);
             w.dopo().bits(dopo)
         });
@@ -109,7 +115,7 @@ impl<S: Sercom> Registers<S> {
     }
 
     /// Set the character size
-    #[cfg(any(feature = "samd11", feature = "samd21"))]
+    #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
     #[inline]
     pub fn set_char_size(&mut self, bits: u8) {
         self.spi()

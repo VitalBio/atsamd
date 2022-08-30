@@ -6,9 +6,9 @@ use crate::timer_params::TimerParams;
 use crate::pac::{PM, TCC0};
 #[cfg(feature = "samd11")]
 use crate::pac::{TC1, TC2};
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 use crate::pac::{TC3, TC4, TC5, TCC1, TCC2};
-#[cfg(feature = "samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "samd21j"))]
 use crate::pac::{TC6, TC7};
 
 // Timer/Counter (TCx)
@@ -136,14 +136,14 @@ pwm! {
     Pwm2: (TC2, Tc1Tc2Clock, apbcmask, tc2_, Pwm2Wrapper),
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 pwm! {
     Pwm3: (TC3, Tcc2Tc3Clock, apbcmask, tc3_, Pwm3Wrapper),
     Pwm4: (TC4, Tc4Tc5Clock, apbcmask, tc4_, Pwm4Wrapper),
     Pwm5: (TC5, Tc4Tc5Clock, apbcmask, tc5_, Pwm5Wrapper),
 }
 
-#[cfg(feature = "samd21j")]
+#[cfg(any(feature = "min-samda1j", feature = "samd21j"))]
 pwm! {
     Pwm6: (TC6, Tc6Tc7Clock, apbcmask, tc6_, Pwm6Wrapper),
     Pwm7: (TC7, Tc6Tc7Clock, apbcmask, tc7_, Pwm7Wrapper),
@@ -281,9 +281,10 @@ pwm_tcc! {
     Pwm0: (TCC0, Tcc0Clock, apbcmask, tcc0_, Pwm0Wrapper),
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 pwm_tcc! {
     Pwm0: (TCC0, Tcc0Tcc1Clock, apbcmask, tcc0_, Pwm0Wrapper),
     Pwm1: (TCC1, Tcc0Tcc1Clock, apbcmask, tcc1_, Pwm1Wrapper),
     Pwm2: (TCC2, Tcc2Tc3Clock, apbcmask, tcc2_, Pwm2Wrapper),
 }
+

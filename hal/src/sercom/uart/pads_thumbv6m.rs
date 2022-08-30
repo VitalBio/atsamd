@@ -264,7 +264,7 @@ where
     }
 }
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 impl<S, RX, TX, RTS, CTS> Pads<S, RX, TX, RTS, CTS>
 where
     S: Sercom,
@@ -367,7 +367,7 @@ where
 /// [`PinId`]: crate::gpio::PinId
 /// [`OptionalPinId`]: crate::gpio::OptionalPinId
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 pub type PadsFromIds<S, RX = NoneT, TX = NoneT, RTS = NoneT, CTS = NoneT> = Pads<
     S,
     <RX as GetOptionalPad<S>>::Pad,

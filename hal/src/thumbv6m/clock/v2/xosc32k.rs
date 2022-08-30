@@ -89,8 +89,12 @@ impl Xosc32kToken {
 
     #[inline]
     fn set_start_up(&mut self, start_up: Startup) {
+        #[cfg(not(feature = "samda1"))]
         self.xosc32k()
             .modify(|_, w| unsafe { w.startup().bits(start_up.into()) });
+        #[cfg(feature = "samda1")]
+        self.xosc32k()
+            .modify(|_, w| w.startup().bits(start_up.into()));
     }
 
     #[inline]

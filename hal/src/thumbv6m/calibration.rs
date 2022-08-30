@@ -58,4 +58,9 @@ pub fn usb_trim_cal() -> u8 {
     return cal_with_errata(4, 23, 7, 7, 5) as u8;
     #[cfg(feature = "samd21")]
     return cal_with_errata(4, 23, 7, 7, 3) as u8;
+    // 2022-08-30 RMM: I couldn't find the errata in the SAMD21/DA1 that explains the previous
+    // case, but since the DA1 seems to be very close to identical to the D21 I've brought it
+    // over
+    #[cfg(feature = "samda1")]
+    return cal_with_errata(4, 23, 7, 7, 3) as u8;
 }

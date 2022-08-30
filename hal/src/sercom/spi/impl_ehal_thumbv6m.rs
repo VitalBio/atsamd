@@ -8,7 +8,7 @@
 //!
 //! # Variations by [`Size`]
 //!
-//! SAMD11 and SAMD21 chips do not have 32-bit extension mode, so their
+//! SAMD11 and SAMD21/SAMDA1 chips do not have 32-bit extension mode, so their
 //! transaction `Size` can only vary by the [`CharSize`]. Both options,
 //! [`EightBit`] and [`NineBit`], are [`AtomicSize`]s, because each can be
 //! completed with a single read/write of the `DATA` register. Consequently,

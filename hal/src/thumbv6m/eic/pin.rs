@@ -253,148 +253,148 @@ ei!(ExtInt[7] {
     PA09,
 });
 
-// SAMD21
+// SAMD21/SAMDA1
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[0] {
     #[cfg(not(any(feature = "samd21el", feature = "samd21gl")))]
     PA00,
     PA16,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB00,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB16,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[1] {
     #[cfg(not(any(feature = "samd21el", feature = "samd21gl")))]
     PA01,
     PA17,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB01,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB17,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[2] {
     PA02,
     PA18,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB02,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[3] {
     PA03,
     PA19,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB03,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[4] {
     PA04,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PA20,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB04,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[5] {
     PA05,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PA21,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB05,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[6] {
     PA06,
     PA22,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB06,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB22,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[7] {
     PA07,
     PA23,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB07,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB23,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[8] {
     #[cfg(not(feature = "samd21el"))]
     PA28,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB08,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[9] {
     PA09,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB09,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[10] {
     PA10,
     PA30,
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PB10,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[11] {
    PA11,
    PA31,
-   #[cfg(feature = "min-samd21g")]
+   #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
    PB11,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[12] {
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PA12,
     PA24,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB12,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[13] {
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     PA13,
     PA25,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB13,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[14] {
     PA14,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB14,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB30,
 });
 
-#[cfg(feature = "samd21")]
+#[cfg(any(feature = "samda1", feature = "samd21"))]
 ei!(ExtInt[15] {
     PA15,
     PA27,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB15,
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     PB31,
 });

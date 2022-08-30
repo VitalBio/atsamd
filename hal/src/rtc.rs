@@ -27,8 +27,8 @@ use crate::pac::{
     rtc::mode2::CTRLA as MODE2_CTRLA, MCLK as PM,
 };
 
-// SAMD11/SAMD21 imports
-#[cfg(any(feature = "samd11", feature = "samd21"))]
+// SAMD11/SAMD21/SAMDA1 imports
+#[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
 use crate::pac::{
     rtc::mode0::ctrl::PRESCALER_A, rtc::mode0::CTRL as MODE0_CTRLA,
     rtc::mode2::CTRL as MODE2_CTRLA, PM,
@@ -114,7 +114,7 @@ impl<Mode: RtcMode> Rtc<Mode> {
     fn mode0_ctrla(&self) -> &MODE0_CTRLA {
         #[cfg(feature = "min-samd51g")]
         return &self.mode0().ctrla;
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         return &self.mode0().ctrl;
     }
 
@@ -122,7 +122,7 @@ impl<Mode: RtcMode> Rtc<Mode> {
     fn mode2_ctrla(&self) -> &MODE2_CTRLA {
         #[cfg(feature = "min-samd51g")]
         return &self.mode2().ctrla;
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         return &self.mode2().ctrl;
     }
 
@@ -130,7 +130,7 @@ impl<Mode: RtcMode> Rtc<Mode> {
     fn sync(&self) {
         #[cfg(feature = "min-samd51g")]
         while self.mode2().syncbusy.read().bits() != 0 {}
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         while self.mode2().status.read().syncbusy().bit_is_set() {}
     }
 
@@ -244,8 +244,8 @@ impl Rtc<Count32Mode> {
     /// Returns the internal counter value.
     #[inline]
     pub fn count32(&self) -> u32 {
-        // synchronize this read on SAMD11/21. SAMx5x is automatically synchronized
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        // synchronize this read on SAMD11/21/A1. SAMx5x is automatically synchronized
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         {
             self.mode0().readreq.modify(|_, w| w.rcont().set_bit());
             self.sync();
@@ -306,8 +306,8 @@ impl Rtc<ClockMode> {
 
     /// Returns the current clock/calendar value.
     pub fn current_time(&self) -> Datetime {
-        // synchronize this read on SAMD11/21. SAMx5x is automatically synchronized
-        #[cfg(any(feature = "samd11", feature = "samd21"))]
+        // synchronize this read on SAMD11/21/A1. SAMx5x is automatically synchronized
+        #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         {
             self.mode2().readreq.modify(|_, w| w.rcont().set_bit());
             self.sync();
@@ -358,7 +358,10 @@ impl CountDown for Rtc<Count32Mode> {
         while self.mode0_ctrla().read().swrst().bit_is_set() {}
 
         // set cycles to compare to...
+        #[cfg(not(feature = "samda1"))]
         self.mode0().comp[0].write(|w| unsafe { w.comp().bits(cycles) });
+        #[cfg(feature = "samda1")]
+        self.mode0().comp.write(|w| unsafe { w.comp().bits(cycles) });
         self.mode0_ctrla().modify(|_, w| {
             // set clock divider...
             w.prescaler().variant(divider);

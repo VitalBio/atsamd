@@ -1,6 +1,7 @@
 # Unreleased Changes
 
 - Add support for L-Variant of the SAMD21D
+- Add support for the SAMDA1[EGJ]
 
 # v0.15.0
 
