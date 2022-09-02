@@ -482,7 +482,10 @@ impl Monotonic for Rtc<Count32Mode> {
     }
 
     fn set_compare(&mut self, instant: Self::Instant) {
-        unsafe { self.mode0().comp[0].write(|w| w.comp().bits(instant.ticks())) }
+        #[cfg(not(feature = "samda1"))]
+        self.mode0().comp[0].write(|w| unsafe { w.comp().bits(instant.ticks()) });
+        #[cfg(feature = "samda1")]
+        self.mode0().comp.write(|w| unsafe { w.comp().bits(instant.ticks()) });
     }
 
     fn clear_compare_flag(&mut self) {
