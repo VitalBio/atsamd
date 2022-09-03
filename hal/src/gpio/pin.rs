@@ -1132,7 +1132,7 @@ declare_pins!(
         (PB06, 06),
         #[cfg(any(feature = "min-samda1j", feature = "min-samd21j", feature = "min-samd51j"))]
         (PB07, 07),
-        #[cfg(any(feature = "min-samda1j", feature = "min-samd21g", feature = "min-samd51g"))]
+        #[cfg(any(feature = "min-samda1g", feature = "min-samd21g", feature = "min-samd51g"))]
         (PB08, 08),
         #[cfg(any(feature = "min-samda1g", feature = "min-samd21g", feature = "min-samd51g"))]
         (PB09, 09),

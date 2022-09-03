@@ -109,7 +109,7 @@ impl<P: PclkId> PclkToken<P> {
 pub mod ids {
 
     pub use crate::sercom::{Sercom0, Sercom1, Sercom2, Sercom3};
-    #[cfg(feature = "min-samd21g")]
+    #[cfg(any(feature = "min-samda1g", feature = "min-samd21g"))]
     pub use crate::sercom::{Sercom4, Sercom5};
 
     pub use super::super::dfll::DfllId;
@@ -117,7 +117,7 @@ pub mod ids {
     pub use super::super::gclk::{
         Gclk0Id, Gclk1Id, Gclk2Id, Gclk3Id, Gclk4Id, Gclk5Id, Gclk6Id, Gclk7Id,
     };
-    #[cfg(feature = "min-samd21j")]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     pub use super::super::types::Tc6Tc7;
     pub use super::super::types::{
         AcAna, AcDig, Adc, Dac, Dpll32k, Eic, EvSys0, EvSys1, EvSys10, EvSys11, EvSys2, EvSys3,

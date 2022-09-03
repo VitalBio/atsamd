@@ -446,7 +446,7 @@ clock_generator!(
     (tcc0_tcc1, Tcc0Tcc1Clock, TCC0_TCC1, Tcc0Tcc1),
     (tcc2_tc3, Tcc2Tc3Clock, TCC2_TC3, Tcc2Tc3),
     (tc4_tc5, Tc4Tc5Clock, TC4_TC5, Tc4Tc5),
-    #[cfg(any(feature = "min-samda1g", feature = "min-samd21j"))]
+    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
     (tc6_tc7, Tc6Tc7Clock, TC6_TC7, Tc6Tc7),
     (sercom0_core, Sercom0CoreClock, SERCOM0_CORE, Sercom0),
     (sercom1_core, Sercom1CoreClock, SERCOM1_CORE, Sercom1),
