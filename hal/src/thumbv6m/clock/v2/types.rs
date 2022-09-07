@@ -66,7 +66,7 @@ create_types!(SysCtrl);
 create_types!(Tcc0Tcc1, Tcc0, Tcc1);
 create_types!(Tcc2Tc3, Tcc2, Tc3);
 create_types!(Tc4Tc5, Tc4, Tc5);
-#[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
+#[cfg(any(feature = "samda1", feature = "min-samd21j"))]
 create_types!(Tc6Tc7, Tc6, Tc7);
 create_types!(Usb);
 create_types!(Wdt);

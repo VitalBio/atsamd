@@ -10,6 +10,8 @@ use crate::pac::{PM, TC1};
 #[allow(unused)]
 #[cfg(any(feature = "samda1", feature = "samd21"))]
 use crate::pac::{PM, TC3, TC4, TC5};
+#[cfg(any(feature = "samda1", feature = "min-samd21j"))]
+use crate::pac::{TC6, TC7};
 use crate::timer_params::TimerParams;
 
 use crate::clock;
@@ -184,4 +186,9 @@ tc! {
     TimerCounter3: (TC3, tc3_, Tcc2Tc3Clock),
     TimerCounter4: (TC4, tc4_, Tc4Tc5Clock),
     TimerCounter5: (TC5, tc5_, Tc4Tc5Clock),
+}
+#[cfg(any(feature = "samda1", feature = "min-samd21j"))]
+tc! {
+    TimerCounter6: (TC6, tc6_, Tc6Tc7Clock),
+    TimerCounter7: (TC7, tc7_, Tc6Tc7Clock),
 }

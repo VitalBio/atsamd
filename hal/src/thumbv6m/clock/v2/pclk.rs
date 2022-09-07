@@ -117,7 +117,7 @@ pub mod ids {
     pub use super::super::gclk::{
         Gclk0Id, Gclk1Id, Gclk2Id, Gclk3Id, Gclk4Id, Gclk5Id, Gclk6Id, Gclk7Id,
     };
-    #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
+    #[cfg(any(feature = "samda1", feature = "min-samd21j"))]
     pub use super::super::types::Tc6Tc7;
     pub use super::super::types::{
         AcAna, AcDig, Adc, Dac, Dpll32k, Eic, EvSys0, EvSys1, EvSys10, EvSys11, EvSys2, EvSys3,
@@ -199,7 +199,7 @@ macro_rules! with_pclk_types_ids {
             (Tcc0Tcc1 = 26, tcc0_tcc1)
             (Tcc2Tc3 = 27, tcc2_tc3)
             (Tc4Tc5 = 28, tc4_tc5)
-            #[cfg(any(feature = "min-samda1j", feature = "min-samd21j"))]
+            #[cfg(any(feature = "samda1", feature = "min-samd21j"))]
             (Tc6Tc7 = 29, tc6_tc7)
             (Adc = 30, adc)
             (AcDig = 31, ac_dig)

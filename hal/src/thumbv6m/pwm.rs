@@ -8,7 +8,7 @@ use crate::pac::{PM, TCC0};
 use crate::pac::{TC1, TC2};
 #[cfg(any(feature = "samda1", feature = "samd21"))]
 use crate::pac::{TC3, TC4, TC5, TCC1, TCC2};
-#[cfg(any(feature = "min-samda1j", feature = "samd21j"))]
+#[cfg(any(feature = "samda1", feature = "min-samd21j"))]
 use crate::pac::{TC6, TC7};
 
 // Timer/Counter (TCx)
@@ -143,7 +143,7 @@ pwm! {
     Pwm5: (TC5, Tc4Tc5Clock, apbcmask, tc5_, Pwm5Wrapper),
 }
 
-#[cfg(any(feature = "min-samda1j", feature = "samd21j"))]
+#[cfg(any(feature = "samda1", feature = "samd21j"))]
 pwm! {
     Pwm6: (TC6, Tc6Tc7Clock, apbcmask, tc6_, Pwm6Wrapper),
     Pwm7: (TC7, Tc6Tc7Clock, apbcmask, tc7_, Pwm7Wrapper),
@@ -287,4 +287,3 @@ pwm_tcc! {
     Pwm1: (TCC1, Tcc0Tcc1Clock, apbcmask, tcc1_, Pwm1Wrapper),
     Pwm2: (TCC2, Tcc2Tc3Clock, apbcmask, tcc2_, Pwm2Wrapper),
 }
-
