@@ -18,4 +18,8 @@ impl EIC {
 
         EIC { eic }
     }
+
+    pub fn destroy(self) -> pac::EIC {
+        self.eic
+    }
 }
