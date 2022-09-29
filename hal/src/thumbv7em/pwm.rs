@@ -140,7 +140,7 @@ impl<I: PinId> $TYPE<I> {
         let count = self.tc.count16();
         let divisor = count.ctrla.read().prescaler().bits();
         let top = count.cc[0].read().cc().bits();
-        Hertz(self.clock_freq.0 / divisor as u32 / (top + 1) as u32)
+        Hertz(self.clock_freq.0 / divisor as u32 / (top as u32 + 1))
     }
 
     pub fn set_period<P>(&mut self, period: P)
@@ -295,7 +295,7 @@ impl<I: PinId> Pwm for $TYPE<I> {
     fn get_period(&self) -> Self::Time {
         let divisor = self.tc.count16().ctrla.read().prescaler().bits();
         let top = u16::MAX;
-        Hertz(self.clock_freq.0 / (1u32 << divisor) as u32 / (top + 1) as u32)
+        Hertz(self.clock_freq.0 / (1u32 << divisor) as u32 / (top as u32 + 1))
     }
 
     fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
