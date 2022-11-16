@@ -71,7 +71,7 @@ impl_tc_pinout!(TC1Pinout: [(Pa7, PA07), (Pa11, PA11)]);
 impl_tc_pinout!(TC2Pinout: [(Pa1, PA01), (Pa13, PA13), (Pa17, PA17)]);
 impl_tc_pinout!(TC3Pinout: [(Pa15, PA15), (Pa19, PA19)]);
 #[cfg(feature = "min-samd51j")]
-impl_tc_pinout!(TC4Pinout: [(Pa23, PA23), (Pb0, PB09), (Pb13, PB13)]);
+impl_tc_pinout!(TC4Pinout: [(Pa23, PA23), (Pb09, PB09), (Pb13, PB13)]);
 #[cfg(feature = "min-samd51j")]
 impl_tc_pinout!(TC5Pinout: [(Pa25, PA25), (Pb11, PB11), (Pb15, PB15)]);
 #[cfg(feature = "min-samd51n")]
