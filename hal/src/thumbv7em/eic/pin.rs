@@ -79,14 +79,16 @@ crate::paste::item! {
             });
         }
 
-        pub fn enable_interrupt(&mut self, eic: &mut super::ConfigurableEIC) {
-            eic.eic.intenset.write(|w| unsafe {
+        pub fn enable_interrupt(&mut self, eic: &mut impl super::OptionallyConfigurableEIC) {
+            // SAFETY: INTENSET is not enable-protected
+            unsafe { eic.eic() }.intenset.write(|w| unsafe {
                 w.bits(1 << $num)
             })
         }
 
-        pub fn disable_interrupt(&mut self, eic: &mut super::ConfigurableEIC) {
-            eic.eic.intenclr.write(|w| unsafe {
+        pub fn disable_interrupt(&mut self, eic: &mut impl super::OptionallyConfigurableEIC) {
+            // SAFETY: INTENCLR is not enable-protected
+            unsafe { eic.eic() }.intenclr.write(|w| unsafe {
                 w.bits(1 << $num)
             })
         }

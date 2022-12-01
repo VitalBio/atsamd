@@ -86,7 +86,7 @@ pub fn init_with_gclk(mclk: &mut pac::MCLK, _clock: &EicClock, eic: pac::EIC) ->
 
 /// A configured External Interrupt Controller.
 pub struct EIC {
-    _eic: pac::EIC,
+    eic: pac::EIC,
 }
 
 impl From<ConfigurableEIC> for EIC {
@@ -96,6 +96,24 @@ impl From<ConfigurableEIC> for EIC {
             cortex_m::asm::nop();
         }
 
-        Self { _eic: eic.eic }
+        Self { eic: eic.eic }
     }
 }
+
+/// Either a configured (enabled) or configurable (disabled) external interrupt controller.
+pub trait OptionallyConfigurableEIC {
+    unsafe fn eic(&self) -> &pac::EIC;
+}
+
+impl OptionallyConfigurableEIC for ConfigurableEIC {
+    unsafe fn eic(&self) -> &pac::EIC {
+        &self.eic
+    }
+}
+
+impl OptionallyConfigurableEIC for EIC {
+    unsafe fn eic(&self) -> &pac::EIC {
+        &self.eic
+    }
+}
+
