@@ -86,7 +86,7 @@ pub struct Clocks {
     /// Gclk2, driven at 32 kHz by the OscUlp32k
     pub gclk2: Enabled<gclk::Gclk2<osculp32k::OscUlp32kId>, U1>,
     /// WDT peripheral clock, driven at 32 kHz by Gclk2
-    pub wdt: Enabled<pclk::Pclk<types::Wdt, gclk::Gclk2Id>, U1>,
+    pub wdt: pclk::Pclk<types::Wdt, gclk::Gclk2Id>,
 }
 
 /// Type-level tokens for unused clocks at power-on reset
@@ -198,7 +198,6 @@ pub fn por_state(
         let (gclk2, osculp32k) = gclk::Gclk2::new(gclk::GclkToken::new(), osculp32k);
         let gclk2 = Enabled::<_>::new(gclk2);
         let (wdt, gclk2) = pclk::Pclk::enable(pclk::PclkToken::<_>::new(), gclk2);
-        let wdt = Enabled::new(wdt);
 
         let clocks = Clocks {
             pac,
