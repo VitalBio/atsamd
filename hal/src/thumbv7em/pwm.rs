@@ -223,6 +223,17 @@ pwm! {
     Pwm7: (TC7, TC7Pinout, Tc6Tc7Clock, apbdmask, tc7_, Pwm7Wrapper),
 }
 
+pub enum TcClockPrescaler {
+    Div1,
+    Div2,
+    Div4,
+    Div8,
+    Div16,
+    Div64,
+    Div256,
+    Div1024,
+}
+
 macro_rules! pwm_tc {
     ($($TYPE:ident: ($TC:ident, $pinout:ident, $clock:ident, $apmask:ident, $apbits:ident, $wrapper:ident),)+) => {
         $(
@@ -237,37 +248,32 @@ pub struct $TYPE<I: PinId> {
 }
 
 impl<I: PinId> $TYPE<I> {
-    pub fn new<F: Into<Hertz>> (
+    pub fn new (
         clock: &clock::$clock,
-        freq: F,
+        clock_divider: TcClockPrescaler,
         tc: $TC,
         pinout: $pinout<I>,
         mclk: &mut MCLK,
     ) -> Self {
-        let freq = freq.into();
-        {
-            let count = tc.count16();
-            let params = TimerParams::new(freq, clock.freq().0);
-            mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
-            count.ctrla.write(|w| w.swrst().set_bit());
-            while count.ctrla.read().bits() & 1 != 0 {}
-            count.ctrla.modify(|_, w| w.enable().clear_bit());
-            count.ctrla.modify(|_, w| {
-                match params.divider {
-                    1 => w.prescaler().div1(),
-                    2 => w.prescaler().div2(),
-                    4 => w.prescaler().div4(),
-                    8 => w.prescaler().div8(),
-                    16 => w.prescaler().div16(),
-                    64 => w.prescaler().div64(),
-                    256 => w.prescaler().div256(),
-                    1024 => w.prescaler().div1024(),
-                    _ => unreachable!(),
-                }
-            });
-            count.wave.write(|w| w.wavegen().npwm());
-            count.ctrla.modify(|_, w| w.enable().set_bit());
-        }
+        let count = tc.count16();
+        mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
+        count.ctrla.write(|w| w.swrst().set_bit());
+        while count.ctrla.read().bits() & 1 != 0 {}
+        count.ctrla.modify(|_, w| w.enable().clear_bit());
+        count.ctrla.modify(|_, w| {
+            match clock_divider {
+                TcClockPrescaler::Div1 => w.prescaler().div1(),
+                TcClockPrescaler::Div2 => w.prescaler().div2(),
+                TcClockPrescaler::Div4 => w.prescaler().div4(),
+                TcClockPrescaler::Div8 => w.prescaler().div8(),
+                TcClockPrescaler::Div16 => w.prescaler().div16(),
+                TcClockPrescaler::Div64 => w.prescaler().div64(),
+                TcClockPrescaler::Div256 => w.prescaler().div256(),
+                TcClockPrescaler::Div1024 => w.prescaler().div1024(),
+            }
+        });
+        count.wave.write(|w| w.wavegen().npwm());
+        count.ctrla.modify(|_, w| w.enable().set_bit());
 
         Self {
             clock_freq: clock.freq(),
@@ -312,30 +318,11 @@ impl<I: PinId> Pwm for $TYPE<I> {
         self.tc.count16().cc[channel as usize].write(|w| unsafe { w.cc().bits(duty) });
     }
 
-    fn set_period<P>(&mut self, period: P)
+    fn set_period<P>(&mut self, _period: P)
     where
         P: Into<Self::Time>,
     {
-        let count = self.tc.count16();
-        let period = period.into();
-        let params = TimerParams::new(period, self.clock_freq.0);
-        count.ctrla.modify(|_, w| w.enable().clear_bit());
-        while count.syncbusy.read().enable().bit_is_set() {}
-        count.ctrla.modify(|_, w| {
-            match params.divider {
-                1 => w.prescaler().div1(),
-                2 => w.prescaler().div2(),
-                4 => w.prescaler().div4(),
-                8 => w.prescaler().div8(),
-                16 => w.prescaler().div16(),
-                64 => w.prescaler().div64(),
-                256 => w.prescaler().div256(),
-                1024 => w.prescaler().div1024(),
-                _ => unreachable!(),
-            }
-        });
-        count.ctrla.modify(|_, w| w.enable().set_bit());
-        while count.syncbusy.read().enable().bit_is_set() {}
+        panic!("Not implemented");
     }
 }
 
