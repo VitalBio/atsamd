@@ -223,6 +223,29 @@ pwm! {
     Pwm7: (TC7, TC7Pinout, Tc6Tc7Clock, apbdmask, tc7_, Pwm7Wrapper),
 }
 
+// Alternate PWM mode for TCs that let you use both waveform outputs with TOP being used to control period
+impl_tc_pinout!(TC0PinoutAlt: [
+    (Pa4, PA04),
+    (Pa5, PA05),
+    (Pa8, PA08),
+    (Pa9, PA09),
+    #[cfg(feature = "min-samd51j")]
+    (Pb30, PB30),
+    #[cfg(feature = "min-samd51j")]
+    (Pb31, PB31)
+]);
+impl_tc_pinout!(TC1PinoutAlt: [(Pa6, PA06), (Pa7, PA07), (Pa10, PA10), (Pa11, PA11)]);
+impl_tc_pinout!(TC2PinoutAlt: [(Pa0, PA00), (Pa1, PA01), (Pa12, PA12), (Pa13, PA13), (Pa16, PA16), (Pa17, PA17)]);
+impl_tc_pinout!(TC3PinoutAlt: [(Pa14, PA14), (Pa15, PA15), (Pa18, PA18), (Pa19, PA19)]);
+#[cfg(feature = "min-samd51j")]
+impl_tc_pinout!(TC4PinoutAlt: [(Pa22, PA22), (Pa23, PA23), (Pb08, PB08), (Pb09, PB09), (Pb12, PB12), (Pb13, PB13)]);
+#[cfg(feature = "min-samd51j")]
+impl_tc_pinout!(TC5PinoutAlt: [(Pa24, PA24), (Pa25, PA25), (Pb10, PB10), (Pb11, PB11), (Pb14, PB14), (Pb15, PB15)]);
+#[cfg(feature = "min-samd51n")]
+impl_tc_pinout!(TC6PinoutAlt: [(Pa30, PA30), (Pa31, PA31), (Pb2, PB02), (Pb3, PB03), (Pb16, PB16), (Pb17, PB17)]);
+#[cfg(feature = "min-samd51n")]
+impl_tc_pinout!(TC7PinoutAlt: [(Pa20, PA20), (Pa21, PA21), (Pb0, PB00), (Pb1, PB01), (Pb22, PB22), (Pb23, PB23)]);
+
 pub enum TcClockPrescaler {
     Div1,
     Div2,
@@ -331,22 +354,22 @@ impl<I: PinId> Pwm for $TYPE<I> {
 }
 
 pwm_tc! {
-    Tc0Pwm: (TC0, TC0Pinout, Tc0Tc1Clock, apbamask, tc0_, TcPwm0Wrapper),
-    Tc1Pwm: (TC1, TC1Pinout, Tc0Tc1Clock, apbamask, tc1_, TcPwm1Wrapper),
-    Tc2Pwm: (TC2, TC2Pinout, Tc2Tc3Clock, apbbmask, tc2_, TcPwm2Wrapper),
-    Tc3Pwm: (TC3, TC3Pinout, Tc2Tc3Clock, apbbmask, tc3_, TcPwm3Wrapper),
+    Tc0Pwm: (TC0, TC0PinoutAlt, Tc0Tc1Clock, apbamask, tc0_, TcPwm0Wrapper),
+    Tc1Pwm: (TC1, TC1PinoutAlt, Tc0Tc1Clock, apbamask, tc1_, TcPwm1Wrapper),
+    Tc2Pwm: (TC2, TC2PinoutAlt, Tc2Tc3Clock, apbbmask, tc2_, TcPwm2Wrapper),
+    Tc3Pwm: (TC3, TC3PinoutAlt, Tc2Tc3Clock, apbbmask, tc3_, TcPwm3Wrapper),
 }
 
 #[cfg(feature = "min-samd51j")]
 pwm_tc! {
-    Tc4Pwm: (TC4, TC4Pinout, Tc4Tc5Clock, apbcmask, tc4_, TcPwm4Wrapper),
-    Tc5Pwm: (TC5, TC5Pinout, Tc4Tc5Clock, apbcmask, tc5_, TcPwm5Wrapper),
+    Tc4Pwm: (TC4, TC4PinoutAlt, Tc4Tc5Clock, apbcmask, tc4_, TcPwm4Wrapper),
+    Tc5Pwm: (TC5, TC5PinoutAlt, Tc4Tc5Clock, apbcmask, tc5_, TcPwm5Wrapper),
 }
 
 #[cfg(feature = "min-samd51n")]
 pwm_tc! {
-    Tc6Pwm: (TC6, TC6Pinout, Tc6Tc7Clock, apbdmask, tc6_, TcPwm6Wrapper),
-    Tc7Pwm: (TC7, TC7Pinout, Tc6Tc7Clock, apbdmask, tc7_, TcPwm7Wrapper),
+    Tc6Pwm: (TC6, TC6PinoutAlt, Tc6Tc7Clock, apbdmask, tc6_, TcPwm6Wrapper),
+    Tc7Pwm: (TC7, TC7PinoutAlt, Tc6Tc7Clock, apbdmask, tc7_, TcPwm7Wrapper),
 }
 
 // Timer/Counter for Control Applications (TCCx)
