@@ -1,5 +1,4 @@
 //! Analogue-to-Digital Conversion
-use crate::clock::GenericClockController;
 use crate::ehal::adc::{Channel, OneShot};
 use crate::gpio::*;
 use crate::pac::{adc, ADC, PM};
@@ -31,12 +30,8 @@ impl Adc<ADC> {
     /// * 1/2 gain
     /// * 1/2 VDDANA reference voltage
     #[allow(clippy::self_named_constructors)]
-    pub fn adc(adc: ADC, pm: &mut PM, clocks: &mut GenericClockController) -> Self {
+    pub fn adc(adc: ADC, pm: &mut PM, _clock: crate::clock::AdcClock) -> Self {
         pm.apbcmask.modify(|_, w| w.adc_().set_bit());
-
-        // set to 1 / (1 / (48000000 / 32) * 6) = 250000 SPS
-        let gclk0 = clocks.gclk0();
-        clocks.adc(&gclk0).expect("adc clock setup failed");
         while adc.status.read().syncbusy().bit_is_set() {}
 
         adc.ctrla.modify(|_, w| w.swrst().set_bit());
