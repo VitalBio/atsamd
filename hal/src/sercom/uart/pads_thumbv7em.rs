@@ -53,6 +53,16 @@ where
     const RXPO: RXPO_A = RX::PadNum::RXPO;
 }
 
+impl<S, I, RXTX> Rxpo for LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+    RXTX::PadNum: Rxpo,
+{
+    const RXPO: RXPO_A = RXTX::PadNum::RXPO;
+}
+
 //=============================================================================
 // Txpo
 //=============================================================================
@@ -85,6 +95,16 @@ where
     TX::PadNum: Txpo,
 {
     const TXPO: TXPO_A = TX::PadNum::TXPO;
+}
+
+impl<S, I, RXTX> Txpo for LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+    RXTX::PadNum: Txpo,
+{
+    const TXPO: TXPO_A = RXTX::PadNum::TXPO;
 }
 
 //=============================================================================
@@ -216,6 +236,56 @@ where
     }
 }
 
+/// Container for a set of SERCOM [`Pad`]s used in loopback mode (TS and RS use same pin)
+pub struct LoopbackPads<S, I, RXTX = NoneT>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+{
+    sercom: PhantomData<S>,
+    ioset: PhantomData<I>,
+    receive_transmit: RXTX,
+}
+
+impl<S: Sercom, I: IoSet> Default for LoopbackPads<S, I> {
+    fn default() -> Self {
+        Self {
+            sercom: PhantomData,
+            ioset: PhantomData,
+            receive_transmit: NoneT,
+        }
+    }
+}
+
+impl<S, I, RXTX> LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+{
+    /// Set the `RX` [`Pad`]
+    #[inline]
+    pub fn rxtx<Id>(self, pin: impl AnyPin<Id = Id>) -> LoopbackPads<S, I, Pad<S, Id>>
+    where
+        Id: GetPad<S>,
+        Id::PadNum: Rxpo + Txpo,
+        Pad<S, Id>: InIoSet<I>,
+    {
+        LoopbackPads {
+            sercom: self.sercom,
+            ioset: self.ioset,
+            receive_transmit: pin.into().into_mode(),
+        }
+    }
+
+    /// Consume the [`Pads`] and return each individual [`Pad`]
+    #[inline]
+    pub fn free(self) -> RXTX {
+        self.receive_transmit
+    }
+}
+
 /// Define a set of [`Pads`] using [`PinId`]s instead of [`Pin`]s
 ///
 /// In some cases, it is more convenient to specify a set of `Pads` using
@@ -311,6 +381,28 @@ where
     type Cts = CTS;
 }
 
+impl<S, I, RXTX> Sealed for LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+{
+}
+
+impl<S, I, RXTX> PadSet for LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: OptionalPad,
+{
+    type Sercom = S;
+    type IoSet = I;
+    type Rx = RXTX;
+    type Tx = RXTX;
+    type Rts = NoneT;
+    type Cts = NoneT;
+}
+
 //=============================================================================
 // ValidPads
 //=============================================================================
@@ -356,6 +448,16 @@ where
     TX: SomePad,
     RTS: OptionalPad,
     CTS: OptionalPad,
+    Self: PadSet + Rxpo + Txpo,
+{
+    type Capability = Duplex;
+}
+
+impl<S, I, RXTX> ValidPads for LoopbackPads<S, I, RXTX>
+where
+    S: Sercom,
+    I: IoSet,
+    RXTX: SomePad,
     Self: PadSet + Rxpo + Txpo,
 {
     type Capability = Duplex;
