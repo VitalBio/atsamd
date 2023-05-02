@@ -321,8 +321,8 @@ impl OneShotTimerCounter<$TC>
 }
 
 tc! {
-    (PeriodicTimerCounter0, OneShotTimerCounter0): (TC0, tcc0_, Tc0Tc1Clock, apbbmask),
-    (PeriodicTimerCounter1, OneShotTimerCounter1): (TC1, tcc1_, Tc0Tc1Clock, apbbmask),
+    (PeriodicTimerCounter0, OneShotTimerCounter0): (TC0, tc0_, Tc0Tc1Clock, apbamask),
+    (PeriodicTimerCounter1, OneShotTimerCounter1): (TC1, tc1_, Tc0Tc1Clock, apbamask),
     (PeriodicTimerCounter2, OneShotTimerCounter2): (TC2, tc2_, Tc2Tc3Clock, apbbmask),
     (PeriodicTimerCounter3, OneShotTimerCounter3): (TC3, tc3_, Tc2Tc3Clock, apbbmask),
 }
