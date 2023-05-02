@@ -2,7 +2,7 @@
 use crate::ehal::timer::{Cancel, CountDown, Periodic};
 use crate::pac::tc0::COUNT16;
 #[allow(unused)]
-use crate::pac::{MCLK, TC2, TC3};
+use crate::pac::{MCLK, TC0, TC1,  TC2, TC3};
 use crate::timer_params::TimerParams;
 // Only the G variants are missing these timers
 #[cfg(feature = "min-samd51j")]
@@ -321,6 +321,8 @@ impl OneShotTimerCounter<$TC>
 }
 
 tc! {
+    (PeriodicTimerCounter0, OneShotTimerCounter0): (TC0, tcc0_, Tc0Tc1Clock, apbbmask),
+    (PeriodicTimerCounter1, OneShotTimerCounter1): (TC1, tcc1_, Tc0Tc1Clock, apbbmask),
     (PeriodicTimerCounter2, OneShotTimerCounter2): (TC2, tc2_, Tc2Tc3Clock, apbbmask),
     (PeriodicTimerCounter3, OneShotTimerCounter3): (TC3, tc3_, Tc2Tc3Clock, apbbmask),
 }
