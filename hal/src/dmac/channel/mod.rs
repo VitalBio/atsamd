@@ -190,6 +190,12 @@ impl<Id: ChId, S: Status> Channel<Id, S> {
         InterruptFlags::from_bytes([cleared])
     }
 
+    /// read the block transfer count and return the current count if this channel is active
+    #[inline]
+    pub fn read_active_btcnt(&mut self) -> Option<u16> {
+        self.regs.active.read()
+    }
+
     #[inline]
     fn _reset_private(&mut self) {
         // Reset the channel to its startup state and wait for reset to complete

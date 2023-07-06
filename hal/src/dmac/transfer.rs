@@ -86,7 +86,7 @@
 use super::{
     channel::{AnyChannel, Busy, CallbackStatus, Channel, ChannelId, InterruptFlags, Ready},
     dma_controller::{ChId, TriggerAction, TriggerSource},
-    BlockTransferControl, DmacDescriptor, Error, Result, DESCRIPTOR_SECTION,
+    BlockTransferControl, DmacDescriptor, Error, Result, DESCRIPTOR_SECTION, WRITEBACK,
 };
 use crate::typelevel::{Is, Sealed};
 use core::{ptr::null_mut, sync::atomic};
@@ -606,6 +606,13 @@ where
             self.complete = complete;
         }
         self.complete
+    }
+
+    pub unsafe fn read_block_transfer_count(&mut self) -> usize {
+        match self.chan.as_mut().read_active_btcnt() {
+            Some(count) => count as usize,
+            None => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
+        }
     }
 
     /// Checks and clears the block transfer complete interrupt flag

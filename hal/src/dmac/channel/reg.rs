@@ -17,10 +17,10 @@ use paste::paste;
 use crate::pac::{
     self,
     dmac::{
-        busych::BUSYCH_SPEC, intstatus::INTSTATUS_SPEC, pendch::PENDCH_SPEC,
+        active::ACTIVE_SPEC, busych::BUSYCH_SPEC, intstatus::INTSTATUS_SPEC, pendch::PENDCH_SPEC,
         swtrigctrl::SWTRIGCTRL_SPEC,
     },
-    dmac::{BUSYCH, INTSTATUS, PENDCH, SWTRIGCTRL},
+    dmac::{ACTIVE, BUSYCH, INTSTATUS, PENDCH, SWTRIGCTRL},
     Peripherals, DMAC,
 };
 
@@ -248,6 +248,34 @@ macro_rules! reg_proxy {
             }
         }
     };
+
+    // Read-only active register
+    ($reg:ident, active_register, r) => {
+        paste! {
+            reg_proxy!(@new $reg);
+
+            paste! {
+                impl<Id: ChId> Register<Id> for [< $reg:camel Proxy >]<Id, [< $reg:upper >]> {
+                    fn dmac(&self) -> &DMAC {
+                        &self.dmac
+                    }
+                }
+
+                impl<Id> [< $reg:camel Proxy >]<Id, [< $reg:upper >]> where Id: ChId, [< $reg:upper _SPEC>]: pac::generic::Readable {
+                    #[inline]
+                    #[allow(dead_code)]
+                    pub fn read(&self) -> Option<u16> {
+                        let reg = self.dmac.[< $reg:lower >].read();
+                        if reg.id().bits() == Id::U8 && reg.abusy().bit_is_set() {
+                            Some(reg.btcnt().bits())
+                        } else {
+                            None
+                        }
+                    }
+                }
+            }
+        }
+    };
 }
 
 reg_proxy!(chctrla, register, rw);
@@ -263,6 +291,8 @@ reg_proxy!(intstatus, bit, r);
 reg_proxy!(busych, bit, r);
 reg_proxy!(pendch, bit, r);
 reg_proxy!(swtrigctrl, bit, rw);
+
+reg_proxy!(active, active_register, r);
 
 /// Acts as a proxy to the PAC DMAC object. Only registers and bits
 /// within registers that should be readable/writable by specific
@@ -281,6 +311,7 @@ pub(super) struct RegisterBlock<Id: ChId> {
     pub swtrigctrl: SwtrigctrlProxy<Id, SWTRIGCTRL>,
     #[cfg(feature = "min-samd51g")]
     pub chprilvl: ChprilvlProxy<Id, CHPRILVL>,
+    pub active: ActiveProxy<Id, ACTIVE>,
 }
 
 impl<Id: ChId> RegisterBlock<Id> {
@@ -298,6 +329,7 @@ impl<Id: ChId> RegisterBlock<Id> {
             swtrigctrl: SwtrigctrlProxy::new(),
             #[cfg(feature = "min-samd51g")]
             chprilvl: ChprilvlProxy::new(),
+            active: ActiveProxy::new(),
         }
     }
 }
