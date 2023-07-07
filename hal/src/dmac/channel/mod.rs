@@ -190,9 +190,24 @@ impl<Id: ChId, S: Status> Channel<Id, S> {
         InterruptFlags::from_bytes([cleared])
     }
 
+    /// Enable output event
+    #[inline]
+    pub fn enable_output_event(&mut self) {
+        self.regs.chevctrl.write(|w| {
+            w.evoe().set_bit();
+            w.evomode().default()
+        });
+    }
+
+    /// Disable output event
+    #[inline]
+    pub fn disable_output_event(&mut self) {
+        self.regs.chevctrl.write(|w| w.evoe().clear_bit());
+    }
+
     /// read the block transfer count and return the current count if this channel is active
     #[inline]
-    pub fn read_active_btcnt(&mut self) -> Option<u16> {
+    pub fn read_active_btcnt(&mut self) -> Option<(bool, u16)> {
         self.regs.active.read()
     }
 

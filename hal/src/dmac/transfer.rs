@@ -399,6 +399,7 @@ where
         // set to SUSPEND.  We implicitly leave blockact set to NOACT here; if
         // that changes Channel::xfer_complete() may need to be modified.
         let btctrl = BlockTransferControl::new()
+            .with_evosel(0x3)
             .with_srcinc(src_inc)
             .with_dstinc(dst_inc)
             .with_beatsize(S::Beat::BEATSIZE)
@@ -610,7 +611,7 @@ where
 
     pub unsafe fn read_block_transfer_count(&mut self) -> usize {
         match self.chan.as_mut().read_active_btcnt() {
-            Some(count) => count as usize,
+            Some((_, count)) => count as usize,
             None => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
         }
     }

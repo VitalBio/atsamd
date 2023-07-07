@@ -31,10 +31,11 @@ use pac::dmac as channel_regs;
 use pac::dmac::channel as channel_regs;
 
 use channel_regs::{
-    chctrla::CHCTRLA_SPEC, chctrlb::CHCTRLB_SPEC, chintenclr::CHINTENCLR_SPEC,
-    chintenset::CHINTENSET_SPEC, chintflag::CHINTFLAG_SPEC, chstatus::CHSTATUS_SPEC,
+    chctrla::CHCTRLA_SPEC, chctrlb::CHCTRLB_SPEC, chevctrl::CHEVCTRL_SPEC,
+    chintenclr::CHINTENCLR_SPEC, chintenset::CHINTENSET_SPEC, chintflag::CHINTFLAG_SPEC,
+    chstatus::CHSTATUS_SPEC,
 };
-use channel_regs::{CHCTRLA, CHCTRLB, CHINTENCLR, CHINTENSET, CHINTFLAG, CHSTATUS};
+use channel_regs::{CHCTRLA, CHCTRLB, CHEVCTRL, CHINTENCLR, CHINTENSET, CHINTFLAG, CHSTATUS};
 
 #[cfg(feature = "min-samd51g")]
 use pac::dmac::{
@@ -264,10 +265,12 @@ macro_rules! reg_proxy {
                 impl<Id> [< $reg:camel Proxy >]<Id, [< $reg:upper >]> where Id: ChId, [< $reg:upper _SPEC>]: pac::generic::Readable {
                     #[inline]
                     #[allow(dead_code)]
-                    pub fn read(&self) -> Option<u16> {
+                    pub fn read(&self) -> Option<(bool, u16)> {
                         let reg = self.dmac.[< $reg:lower >].read();
-                        if reg.id().bits() == Id::U8 && reg.abusy().bit_is_set() {
-                            Some(reg.btcnt().bits())
+                        if reg.id().bits() == Id::U8 {
+                            let busy = reg.abusy().bit_is_set();
+                            let count = reg.btcnt().bits();
+                            Some((busy, count))
                         } else {
                             None
                         }
@@ -280,6 +283,7 @@ macro_rules! reg_proxy {
 
 reg_proxy!(chctrla, register, rw);
 reg_proxy!(chctrlb, register, rw);
+reg_proxy!(chevctrl, register, rw);
 reg_proxy!(chintenclr, register, rw);
 reg_proxy!(chintenset, register, rw);
 reg_proxy!(chintflag, register, rw);
@@ -301,6 +305,7 @@ reg_proxy!(active, active_register, r);
 pub(super) struct RegisterBlock<Id: ChId> {
     pub chctrla: ChctrlaProxy<Id, CHCTRLA>,
     pub chctrlb: ChctrlbProxy<Id, CHCTRLB>,
+    pub chevctrl: ChevctrlProxy<Id, CHEVCTRL>,
     pub chintenclr: ChintenclrProxy<Id, CHINTENCLR>,
     pub chintenset: ChintensetProxy<Id, CHINTENSET>,
     pub chintflag: ChintflagProxy<Id, CHINTFLAG>,
@@ -319,6 +324,7 @@ impl<Id: ChId> RegisterBlock<Id> {
         Self {
             chctrla: ChctrlaProxy::new(),
             chctrlb: ChctrlbProxy::new(),
+            chevctrl: ChevctrlProxy::new(),
             chintenclr: ChintenclrProxy::new(),
             chintenset: ChintensetProxy::new(),
             chintflag: ChintflagProxy::new(),
