@@ -1267,6 +1267,13 @@ where
         self.config.as_mut().regs.disable();
         self.config
     }
+
+    /// Disable and then re-enable the SPI peripheral
+    #[inline]
+    pub fn reset(&mut self) {
+        self.config.as_mut().regs.disable();
+        self.config.as_mut().regs.enable();
+    }
 }
 
 #[cfg(feature = "min-samd51g")]
