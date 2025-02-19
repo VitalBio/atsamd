@@ -441,7 +441,7 @@ impl TryFrom<Status> for () {
 ///
 /// The SPI peripheral only has two error types, buffer overflow and transaction
 /// length error.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     Overflow,
     LengthError,
