@@ -73,7 +73,7 @@ impl Status {
 }
 
 /// Errors available for I2C transactions
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
     BusError,
     ArbitrationLost,
