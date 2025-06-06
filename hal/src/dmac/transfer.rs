@@ -609,11 +609,16 @@ where
         self.complete
     }
 
-    pub unsafe fn read_block_transfer_count(&mut self) -> usize {
-        match self.chan.as_mut().read_active_btcnt() {
+    pub unsafe fn read_block_transfer_count(&mut self) -> (usize, Option<(bool, u16)>, usize) {
+        let a_btcnt = self.chan.as_mut().read_active_btcnt();
+        let wb_btcnt = WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize;
+
+        let btcnt = match a_btcnt {
             Some((_, count)) => count as usize,
-            None => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
-        }
+            None => wb_btcnt,
+        };
+
+        (btcnt, a_btcnt, wb_btcnt)
     }
 
     /// Checks and clears the block transfer complete interrupt flag
