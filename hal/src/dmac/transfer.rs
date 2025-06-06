@@ -610,9 +610,12 @@ where
     }
 
     pub unsafe fn read_block_transfer_count(&mut self) -> usize {
+        // If the current channel is active and busy, return the
+        // current block transfer count. Otherwise, return the
+        // block transfer count from the writeback descriptor.
         match self.chan.as_mut().read_active_btcnt() {
-            Some((_, count)) => count as usize,
-            None => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
+            Some((busy, count)) if busy => count as usize,
+            _ => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
         }
     }
 
