@@ -609,14 +609,28 @@ where
         self.complete
     }
 
-    pub unsafe fn read_block_transfer_count(&mut self) -> usize {
-        // If the current channel is active and busy, return the
-        // current block transfer count. Otherwise, return the
-        // block transfer count from the writeback descriptor.
-        match self.chan.as_mut().read_active_btcnt() {
-            Some((busy, count)) if busy => count as usize,
-            _ => WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize,
-        }
+    /// Return the active block transfer count and the writeback
+    /// block transfer count. The active block transfer count
+    /// will be `None` if the channel is not active.
+    ///
+    /// According to the MCU manual (22.8.13), the block transfer
+    /// count (amount of data transferred by the DMA) is stored in
+    /// the writeback descriptor while the channel is idle (or pending)
+    /// and in the active register if the channel is busy. It also says
+    /// that the btcnt (block transfer count) field in the active register
+    /// is only valid if the busy (ABUSY) flag is set. For experience,
+    /// however, it seems that there is some strangeness around reading
+    /// these values and there is no deterministic way of knowing when the
+    /// active count is written to the writeback descriptor and vice versa.
+    /// This means that don't know for sure what the most up-to-date btcnt
+    /// and we've seen cases where the writeback descriptor has a stale
+    /// btcnt value, even though the active register busy flag is unset.
+    /// With this in mind we just return both counts from this function
+    /// and let the user decide which one to use.
+    pub unsafe fn read_block_transfer_count(&mut self) -> (Option<usize>, usize) {
+        let active_btcnt = self.chan.as_mut().read_active_btcnt().map(|v| v.1 as usize);
+        let wb_btcnt = WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize;
+        (active_btcnt, wb_btcnt)
     }
 
     /// Checks and clears the block transfer complete interrupt flag
