@@ -627,9 +627,9 @@ where
     /// btcnt value, even though the active register busy flag is unset.
     /// With this in mind we just return both counts from this function
     /// and let the user decide which one to use.
-    pub unsafe fn read_block_transfer_count(&mut self) -> (Option<usize>, usize) {
+    pub fn read_block_transfer_count(&mut self) -> (Option<usize>, usize) {
         let active_btcnt = self.chan.as_mut().read_active_btcnt().map(|v| v.1 as usize);
-        let wb_btcnt = WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize;
+        let wb_btcnt = unsafe { WRITEBACK[<<C as AnyChannel>::Id as ChId>::USIZE].btcnt as usize };
         (active_btcnt, wb_btcnt)
     }
 
