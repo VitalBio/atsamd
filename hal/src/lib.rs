@@ -114,7 +114,12 @@ compile_error!("'usb' is enabled, but USB isn't supported on SAMD11");
 
 #[cfg(all(
     feature = "usb",
-    not(any(feature = "samda1", feature = "samd21", feature = "min-samd51g", feature = "library"))
+    not(any(
+        feature = "samda1",
+        feature = "samd21",
+        feature = "min-samd51g",
+        feature = "library"
+    ))
 ))]
 compile_error!("The 'usb' feature is enabled, but not a chip with USB support");
 
