@@ -14,7 +14,10 @@
 //! An SPI peripheral can use up to four [`Pin`]s as [`Sercom`] pads. However,
 //! only certain `Pin` combinations are acceptable. All `Pin`s must be mapped to
 //! the same `Sercom`, and for SAMx5x chips, they must also belong to the same
-#![cfg_attr(any(feature = "samda1", feature = "samd11", feature = "samd21"), doc = "`IoSet`.")]
+#![cfg_attr(
+    any(feature = "samda1", feature = "samd11", feature = "samd21"),
+    doc = "`IoSet`."
+)]
 #![cfg_attr(feature = "min-samd51g", doc = "[`IoSet`].")]
 //! This HAL makes it impossible to use invalid `Pin` combinations, and the
 //! [`Pads`] struct is responsible for enforcing these constraints.
@@ -124,11 +127,17 @@ type Pads = spi::PadsFromIds<Sercom0, IoSet1, PA08, NoneT, PA09>;
     doc = "`CharSize`, which can either be `EightBit` or `NineBit`. "
 )]
 //! While on SAMx5x chips, it represents the transaction
-#![cfg_attr(any(feature = "samda1", feature = "samd11", feature = "samd21"), doc = "`Length`")]
+#![cfg_attr(
+    any(feature = "samda1", feature = "samd11", feature = "samd21"),
+    doc = "`Length`"
+)]
 #![cfg_attr(feature = "min-samd51g", doc = "[`Length`]")]
 //! in bytes, using type-level numbers provided by the [`typenum`] crate. Valid
 //! transaction lengths, from `U1` to `U255`, are re-exported in the
-#![cfg_attr(any(feature = "samda1", feature = "samd11", feature = "samd21"), doc = "`lengths`")]
+#![cfg_attr(
+    any(feature = "samda1", feature = "samd11", feature = "samd21"),
+    doc = "`lengths`"
+)]
 #![cfg_attr(feature = "min-samd51g", doc = "[`lengths`]")]
 //! sub-module.
 //!
@@ -656,8 +665,8 @@ impl<P: ValidPads> Config<P> {
         regs.set_dipo_dopo(P::DIPO_DOPO);
         #[cfg(any(feature = "samda1", feature = "samd11", feature = "samd21"))]
         regs.set_char_size(EightBit::BITS);
-        #[cfg(feature = "min-samd51g")]
-        regs.set_length(1);
+        //#[cfg(feature = "min-samd51g")]
+        //regs.set_length(1);
         Self {
             regs,
             pads,
@@ -679,8 +688,11 @@ impl<P: ValidPads> Config<P> {
     )]
     #[cfg_attr(feature = "min-samd51g", doc = "`EightBit` `CharSize`")]
     /// for SAMD11 and SAMD21/SAMDA1 chips or a
-    #[cfg_attr(any(feature = "samda1", feature = "samd11", feature = "samd21"), doc = "`Length` of `U1`")]
-    #[cfg_attr(feature = "min-samd51g", doc = "[`Length`] of `U1`")]
+    #[cfg_attr(
+        any(feature = "samda1", feature = "samd11", feature = "samd21"),
+        doc = "`Length` of `U1` (unset)"
+    )]
+    #[cfg_attr(feature = "min-samd51g", doc = "[`Length`] of `U1` (unset)")]
     /// for SAMx5x chips. Note that [`Config`] takes ownership of both the
     /// PAC [`Sercom`] struct as well as the [`Pads`].
     ///

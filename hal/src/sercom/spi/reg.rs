@@ -106,6 +106,7 @@ impl<S: Sercom> Registers<S> {
     #[cfg(feature = "min-samd51g")]
     #[inline]
     pub fn set_length(&mut self, length: u8) {
+        while self.spi().syncbusy.read().length().bit_is_set() {}
         let length = if length == 0 { 1 } else { length };
         self.spi().length.write(|w| unsafe {
             w.len().bits(length);
