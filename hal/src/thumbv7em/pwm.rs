@@ -3,7 +3,7 @@
 use crate::clock;
 use crate::ehal::{Pwm, PwmPin};
 use crate::gpio::*;
-use crate::gpio::{AlternateE, AnyPin, Pin};
+use crate::gpio::{AlternateE, Pin};
 use crate::time::Hertz;
 use crate::timer_params::TimerParams;
 
@@ -18,24 +18,8 @@ use crate::pac::{TC6, TC7};
 
 // Timer/Counter (TCx)
 
-/// This is a major syntax hack.
-///
-/// The previous Pinout types were enums that took specific v1::Pin types. As a
-/// result, there was no way to make that implementation simultaneously
-/// compatible with both v1::Pin and Pin.
-///
-/// BUT, the enum variant syntax is the same as the namespaced function syntax.
-/// I converted the enums to structs, and I created constructor methods with the
-/// same names as the previous enum variants. By constructing Pinout types with
-/// functions rather than enum variants, you can make it generic over v1::Pin
-/// and Pin types.
-///
-/// This is (mostly) backwards compatible with the current syntax, and all the
-/// existing calls compile. The only incompatible change is the requirement of
-/// type parameters on the Pwm types. Most of the type, the type parameters can
-/// be inferred, so this is mostly backwards compatible as well. But there were
-/// one or two instances where I had to add explicit type parameters to existing
-/// BSP code.
+/// Pinout type must be created from the "correct" pin type, and the user is responsible for
+/// converting the pin type properly
 macro_rules! impl_tc_pinout {
     (
         $Type:ident: [ $(
@@ -43,17 +27,37 @@ macro_rules! impl_tc_pinout {
             ($func: ident, $Id: ident)
         ),+ ]
     ) => {
-        pub struct $Type<I: PinId> {
-            _pin: Pin<I, AlternateE>,
-        }
+        pub struct $Type(());
 
         $(
             $( #[$attr] )?
-            impl $Type<$Id> {
+            impl $Type {
                 #[inline]
-                pub fn $func(pin: impl AnyPin<Id = $Id>) -> Self {
-                    let _pin = pin.into().into_alternate();
-                    Self { _pin }
+                pub fn $func(_pin: Pin<$Id, AlternateE>) -> Self {
+                    Self(())
+                }
+            }
+        )+
+    };
+}
+
+/// Pinout type must be created from the "correct" pin type, and the user is responsible for
+/// converting the pin type properly
+macro_rules! impl_tcc_pinout {
+    (
+        $Type:ident: [ $(
+            $( #[$attr:meta] )?
+            ($func: ident, $Id: ident, $Mode:ident)
+        ),+ ]
+    ) => {
+        pub struct $Type(());
+
+        $(
+            $( #[$attr] )?
+            impl $Type {
+                #[inline]
+                pub fn $func(_pin: Pin<$Id, $Mode>) -> Self {
+                    Self(())
                 }
             }
         )+
@@ -83,21 +87,19 @@ macro_rules! pwm {
     ($($TYPE:ident: ($TC:ident, $pinout:ident, $clock:ident, $apmask:ident, $apbits:ident, $wrapper:ident),)+) => {
         $(
 
-pub struct $TYPE<I: PinId> {
+pub struct $TYPE {
     /// The frequency of the attached clock, not the period of the pwm.
     /// Used to calculate the period of the pwm.
     clock_freq: Hertz,
     tc: $TC,
-    #[allow(dead_code)]
-    pinout: $pinout<I>,
 }
 
-impl<I: PinId> $TYPE<I> {
+impl $TYPE {
     pub fn new<F: Into<Hertz>> (
         clock: &clock::$clock,
         freq: F,
         tc: $TC,
-        pinout: $pinout<I>,
+        _pinout: $pinout,
         mclk: &mut MCLK,
     ) -> Self {
         let freq = freq.into();
@@ -132,7 +134,6 @@ impl<I: PinId> $TYPE<I> {
         Self {
             clock_freq: clock.freq(),
             tc,
-            pinout,
         }
     }
 
@@ -170,7 +171,7 @@ impl<I: PinId> $TYPE<I> {
     }
 }
 
-impl<I: PinId> PwmPin for $TYPE<I> {
+impl PwmPin for $TYPE {
     type Duty = u16;
 
     fn disable(&mut self) {
@@ -261,21 +262,21 @@ macro_rules! pwm_tc {
     ($($TYPE:ident: ($TC:ident, $pinout:ident, $clock:ident, $apmask:ident, $apbits:ident, $wrapper:ident),)+) => {
         $(
 
-pub struct $TYPE<I: PinId> {
+pub struct $TYPE {
     /// The frequency of the attached clock, not the period of the pwm.
     /// Used to calculate the period of the pwm.
     clock_freq: Hertz,
     tc: $TC,
     #[allow(dead_code)]
-    pinout: $pinout<I>,
+    pinout: $pinout,
 }
 
-impl<I: PinId> $TYPE<I> {
+impl $TYPE {
     pub fn new (
         clock: &clock::$clock,
         clock_divider: TcClockPrescaler,
         tc: $TC,
-        pinout: $pinout<I>,
+        pinout: $pinout,
         mclk: &mut MCLK,
     ) -> Self {
         let count = tc.count16();
@@ -306,7 +307,7 @@ impl<I: PinId> $TYPE<I> {
     }
 }
 
-impl<I: PinId> Pwm for $TYPE<I> {
+impl Pwm for $TYPE {
     type Channel = Channel;
     type Time = Hertz;
     type Duty = u16;
@@ -384,48 +385,6 @@ pub enum Channel {
     _5,
     _6,
     _7,
-}
-
-/// This is a major syntax hack.
-///
-/// The previous Pinout types were enums that took specific v1::Pin types. As a
-/// result, there was no way to make that implementation simultaneously
-/// compatible with both v1::Pin and Pin.
-///
-/// BUT, the enum variant syntax is the same as the namespaced function syntax.
-/// I converted the enums to structs, and I created constructor methods with the
-/// same names as the previous enum variants. By constructing Pinout types with
-/// functions rather than enum variants, you can make it generic over v1::Pin
-/// and Pin types.
-///
-/// This is (mostly) backwards compatible with the current syntax, and all the
-/// existing calls compile. The only incompatible change is the requirement of
-/// type parameters on the Pwm types. Most of the type, the type parameters can
-/// be inferred, so this is mostly backwards compatible as well. But there were
-/// one or two instances where I had to add explicit type parameters to existing
-/// BSP code.
-macro_rules! impl_tcc_pinout {
-    (
-        $Type:ident: [ $(
-            $( #[$attr:meta] )?
-            ($func: ident, $Id: ident, $Mode:ident)
-        ),+ ]
-    ) => {
-        pub struct $Type<I: PinId, M: PinMode> {
-            _pin: Pin<I, M>,
-        }
-
-        $(
-            $( #[$attr] )?
-            impl $Type<$Id, $Mode> {
-                #[inline]
-                pub fn $func(pin: impl AnyPin<Id = $Id>) -> Self {
-                    let _pin = pin.into().into_alternate();
-                    Self { _pin }
-                }
-            }
-        )+
-    };
 }
 
 impl_tcc_pinout!(TCC0Pinout: [
@@ -585,23 +544,23 @@ macro_rules! pwm_tcc {
     ($($TYPE:ident: ($TCC:ident, $pinout:ident, $clock:ident, $apmask:ident, $apbits:ident, $wrapper:ident),)+) => {
         $(
 
-pub struct $TYPE<I: PinId, M: PinMode> {
+pub struct $TYPE {
     /// The frequency of the attached clock, not the period of the pwm.
     /// Used to calculate the period of the pwm.
     clock_freq: Hertz,
     tcc: $TCC,
-    #[allow(dead_code)]
-    pinout: $pinout<I, M>,
 }
 
-impl<I: PinId, M: PinMode> $TYPE<I, M> {
-    pub fn new<F: Into<Hertz>> (
+impl $TYPE {
+    /// TCC can take multiple pinouts for multiple channels
+    pub fn new<F: Into<Hertz>, const N: usize> (
         clock: &clock::$clock,
         freq: F,
         tcc: $TCC,
-        pinout: $pinout<I, M>,
+        _pinouts: [$pinout; N],
         mclk: &mut MCLK,
     ) -> Self {
+        const { assert!(N > 0, "must have at least one pinout"); }
         let freq = freq.into();
         {
             let params = TimerParams::new(freq, clock.freq().0);
@@ -634,7 +593,6 @@ impl<I: PinId, M: PinMode> $TYPE<I, M> {
         Self {
             clock_freq: clock.freq(),
             tcc,
-            pinout,
         }
     }
 
@@ -663,7 +621,7 @@ impl<I: PinId, M: PinMode> $TYPE<I, M> {
     }
 }
 
-impl<I: PinId, M: PinMode> Pwm for $TYPE<I, M> {
+impl Pwm for $TYPE {
     type Channel = Channel;
     type Time = Hertz;
     type Duty = u32;
