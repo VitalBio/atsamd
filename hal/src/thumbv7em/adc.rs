@@ -54,6 +54,7 @@ impl Adc<$ADC> {
         mclk: &mut MCLK,
         samples: SampleRate,
         resolution: Resolution,
+        sample_length: u8,
     ) -> Self {
         mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
         adc.ctrla.write(|w| w.swrst().set_bit());
@@ -92,7 +93,7 @@ impl Adc<$ADC> {
 
         adc.ctrlb.modify(|_, w| w.ressel()._12bit());
         while adc.syncbusy.read().ctrlb().bit_is_set() {}
-        adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(5)}); // sample length
+        adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(sample_length)}); // sample length
         while adc.syncbusy.read().sampctrl().bit_is_set() {}
         adc.inputctrl.modify(|_, w| w.muxneg().gnd()); // No negative input (internal gnd)
         while adc.syncbusy.read().inputctrl().bit_is_set() {}
