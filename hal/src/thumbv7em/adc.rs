@@ -300,7 +300,7 @@ where
    WORD: From<u16>,
    PIN: Channel<$ADC, ID=u8>,
 {
-   type Error = ();
+   type Error = core::convert::Infallible;
 
    fn read(&mut self, pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         self.mux(pin);
