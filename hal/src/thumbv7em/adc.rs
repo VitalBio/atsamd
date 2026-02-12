@@ -59,6 +59,7 @@ impl Adc<$ADC> {
         samples: SampleRate,
         resolution: Resolution,
         sample_length: u8,
+        reference: Reference,
     ) -> Self {
         mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
         adc.ctrla.write(|w| w.swrst().set_bit());
@@ -93,7 +94,7 @@ impl Adc<$ADC> {
 
         let mut newadc = Self { adc };
         newadc.samples(samples);
-        newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
+        newadc.reference(reference);
 
         newadc.adc.calib.write(|w| unsafe {
             w.biascomp().bits(calibration::$compcal());
