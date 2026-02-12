@@ -160,13 +160,15 @@ impl Adc<$ADC> {
         while self.adc.syncbusy.read().ctrlb().bit_is_set() {}
     }
 
-    fn power_up(&mut self) {
+    // Enable the ADC
+    pub fn power_up(&mut self) {
         while self.adc.syncbusy.read().enable().bit_is_set() {}
         self.adc.ctrla.modify(|_, w| w.enable().set_bit());
         while self.adc.syncbusy.read().enable().bit_is_set() {}
     }
 
-    fn power_down(&mut self) {
+    // Disable the ADC
+    pub fn power_down(&mut self) {
         while self.adc.syncbusy.read().enable().bit_is_set() {}
         self.adc.ctrla.modify(|_, w| w.enable().clear_bit());
         while self.adc.syncbusy.read().enable().bit_is_set() {}
@@ -218,12 +220,12 @@ impl Adc<$ADC> {
         }
     }
 
-    /// Sets the mux to a particular pin. The pin mux is enabled-protected,
-    /// so must be called while the peripheral is disabled.
+    /// Sets the mux to a particular pin
     fn mux<PIN: Channel<$ADC, ID=u8>>(&mut self, _pin: &mut PIN) {
         let chan = PIN::channel();
         while self.adc.syncbusy.read().inputctrl().bit_is_set() {}
         self.adc.inputctrl.modify(|_, w| w.muxpos().bits(chan));
+        while self.adc.syncbusy.read().inputctrl().bit_is_set() {}
     }
 }
 
@@ -232,7 +234,6 @@ impl ConversionMode<$ADC> for SingleConversion  {
     }
     fn on_complete(adc: &mut Adc<$ADC>) {
         adc.disable_interrupts();
-        adc.power_down();
     }
     fn on_stop(_adc: &mut Adc<$ADC>) {
     }
@@ -246,7 +247,6 @@ impl ConversionMode<$ADC> for FreeRunning {
     }
     fn on_stop(adc: &mut Adc<$ADC>) {
         adc.disable_interrupts();
-        adc.power_down();
         adc.disable_freerunning();
     }
 }
@@ -266,7 +266,6 @@ impl<C> InterruptAdc<$ADC, C>
     /// Starts a conversion sampling the specified pin.
     pub fn start_conversion<PIN: Channel<$ADC, ID=u8>>(&mut self, pin: &mut PIN) {
         self.adc.mux(pin);
-        self.adc.power_up();
         C::on_start(&mut self.adc);
         self.adc.enable_interrupts();
         self.adc.start_conversion();
@@ -297,9 +296,7 @@ where
 
    fn read(&mut self, pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         self.mux(pin);
-        self.power_up();
         let result = self.synchronous_convert();
-        self.power_down();
         Ok(result.into())
    }
 }
