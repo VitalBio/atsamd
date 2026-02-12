@@ -144,14 +144,6 @@ impl Adc<$ADC> {
         while self.adc.syncbusy.read().refctrl().bit_is_set() {}
     }
 
-    /// Set the prescaler for adjusting the clock relative to the system clock
-    pub fn prescaler(&mut self, prescaler: Prescaler) {
-        self.adc
-            .ctrla
-            .modify(|_, w| w.prescaler().variant(prescaler));
-        // Note there is no syncbusy for ctrla
-    }
-
     /// Set the input resolution
     pub fn resolution(&mut self, resolution: Resolution) {
         self.adc
