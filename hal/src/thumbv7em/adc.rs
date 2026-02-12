@@ -47,6 +47,10 @@ macro_rules! adc_hal {
     ($($ADC:ident: ($init:ident, $clock:ident, $apmask:ident, $apbits:ident, $compcal:ident, $refcal:ident, $r2rcal:ident),)+) => {
         $(
 impl Adc<$ADC> {
+    /// Create new ADC
+    ///
+    /// Note that the frequency parameter indicates the desired ADC clock frequency, not the
+    /// sampling frequency, which depends on many parameters.
     pub fn $init<F: Into<Hertz>>(
         clock: &clock::$clock,
         freq: F,
@@ -62,19 +66,8 @@ impl Adc<$ADC> {
 
         // Find best prescaler to get close to target freq
         let freq = freq.into();
-        let sample_ticks = 5 + 12; // 5 ticks for sample time + 1 tick for each of 12 bits
-        let num_samples = 1u32 << samples as u32;
-        let ticks: u32 = clock.freq().0 / freq.0.max(1) / sample_ticks / num_samples;
-        let divider: u32 = {
-            let next_pow = ticks.next_power_of_two();
-            let prev_pow = (ticks >> 1).next_power_of_two();
-            if next_pow - ticks < ticks - prev_pow {
-                next_pow
-            }
-            else {
-                prev_pow
-            }
-        };
+        let ticks: u32 = clock.freq().0 / freq.0.max(1);
+        let divider = (ticks.max(1)).next_power_of_two();
         adc.ctrla.modify(|_, w| w.enable().clear_bit());
         adc.ctrla.modify(|_, w| {
             match divider {
@@ -91,23 +84,22 @@ impl Adc<$ADC> {
             }
         });
 
-        adc.ctrlb.modify(|_, w| w.ressel()._12bit());
+        adc.ctrlb.modify(|_, w| w.ressel().variant(resolution));
         while adc.syncbusy.read().ctrlb().bit_is_set() {}
         adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(sample_length)}); // sample length
         while adc.syncbusy.read().sampctrl().bit_is_set() {}
         adc.inputctrl.modify(|_, w| w.muxneg().gnd()); // No negative input (internal gnd)
         while adc.syncbusy.read().inputctrl().bit_is_set() {}
 
-        adc.calib.write(|w| unsafe {
+        let mut newadc = Self { adc };
+        newadc.samples(samples);
+        newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
+
+        newadc.adc.calib.write(|w| unsafe {
             w.biascomp().bits(calibration::$compcal());
             w.biasrefbuf().bits(calibration::$refcal());
             w.biasr2r().bits(calibration::$r2rcal())
         });
-
-        let mut newadc = Self { adc };
-        newadc.samples(samples);
-        newadc.resolution(resolution);
-        newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
 
         newadc
     }
