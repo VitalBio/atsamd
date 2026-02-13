@@ -43,6 +43,18 @@ pub trait ConversionMode<ADC> {
 pub struct SingleConversion;
 pub struct FreeRunning;
 
+/// Combination of sampling rate and resolution parameters
+#[derive(Debug, Clone, Copy)]
+pub enum SampleResolution {
+    /// For single sampling, we can set the resolution freely
+    Single(Resolution),
+    /// When averaging multiple samples, resolution needs to be set to 16 bits and the result will
+    /// always be 12 bits. According to the datasheet, it's most likely that you can't go below 12
+    /// bits of resolution when averaging
+    Average(SampleRate),
+    // Support other configurations in the future, such as oversampling
+}
+
 macro_rules! adc_hal {
     ($($ADC:ident: ($init:ident, $clock:ident, $apmask:ident, $apbits:ident, $compcal:ident, $refcal:ident, $r2rcal:ident),)+) => {
         $(
@@ -56,8 +68,7 @@ impl Adc<$ADC> {
         freq: F,
         adc: $ADC,
         mclk: &mut MCLK,
-        samples: SampleRate,
-        resolution: Resolution,
+        sample_resolution: SampleResolution,
         sample_length: u8,
         reference: Reference,
     ) -> Self {
@@ -85,15 +96,13 @@ impl Adc<$ADC> {
             }
         });
 
-        adc.ctrlb.modify(|_, w| w.ressel().variant(resolution));
-        while adc.syncbusy.read().ctrlb().bit_is_set() {}
         adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(sample_length)}); // sample length
         while adc.syncbusy.read().sampctrl().bit_is_set() {}
         adc.inputctrl.modify(|_, w| w.muxneg().gnd()); // No negative input (internal gnd)
         while adc.syncbusy.read().inputctrl().bit_is_set() {}
 
         let mut newadc = Self { adc };
-        newadc.samples(samples);
+        newadc.sample_resolution(sample_resolution);
         newadc.reference(reference);
 
         newadc.adc.calib.write(|w| unsafe {
@@ -105,9 +114,18 @@ impl Adc<$ADC> {
         newadc
     }
 
-    /// Set the sample rate
-    pub fn samples(&mut self, samples: SampleRate) {
+    /// Set the sample rate and resolution
+    pub fn sample_resolution(&mut self, sample_resolution: SampleResolution) {
         use adc0::avgctrl::SAMPLENUM_A;
+
+        let (samples, resolution) = match sample_resolution {
+            SampleResolution::Single(resolution) => (SAMPLENUM_A::_1, resolution),
+            SampleResolution::Average(samples) => (samples, Resolution::_16BIT),
+        };
+
+        self.adc.ctrlb.modify(|_, w| w.ressel().variant(resolution));
+        while self.adc.syncbusy.read().ctrlb().bit_is_set() {}
+
         self.adc.avgctrl.modify(|_, w| {
             w.samplenum().variant(samples);
             unsafe {
@@ -125,31 +143,12 @@ impl Adc<$ADC> {
         while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
     }
 
-    /// Set the sample rate
-    pub fn division_coefficient(&mut self, coefficient: u8) {
-        let coefficient = if coefficient > 4 { 4 } else { coefficient }; // Can't be greater than 4
-        self.adc.avgctrl.modify(|_, w| {
-            unsafe {
-                w.adjres().bits(coefficient)
-            }
-        });
-        while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
-    }
-
     /// Set the voltage reference
     pub fn reference(&mut self, reference: Reference) {
         self.adc
             .refctrl
             .modify(|_, w| w.refsel().variant(reference));
         while self.adc.syncbusy.read().refctrl().bit_is_set() {}
-    }
-
-    /// Set the input resolution
-    pub fn resolution(&mut self, resolution: Resolution) {
-        self.adc
-            .ctrlb
-            .modify(|_, w| w.ressel().variant(resolution));
-        while self.adc.syncbusy.read().ctrlb().bit_is_set() {}
     }
 
     // Enable the ADC
