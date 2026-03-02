@@ -43,17 +43,34 @@ pub trait ConversionMode<ADC> {
 pub struct SingleConversion;
 pub struct FreeRunning;
 
+/// Combination of sampling rate and resolution parameters
+#[derive(Debug, Clone, Copy)]
+pub enum SampleResolution {
+    /// For single sampling, we can set the resolution freely
+    Single(Resolution),
+    /// When averaging multiple samples, resolution needs to be set to 16 bits and the result will
+    /// always be 12 bits. According to the datasheet, it's most likely that you can't go below 12
+    /// bits of resolution when averaging
+    Average(SampleRate),
+    // Support other configurations in the future, such as oversampling
+}
+
 macro_rules! adc_hal {
     ($($ADC:ident: ($init:ident, $clock:ident, $apmask:ident, $apbits:ident, $compcal:ident, $refcal:ident, $r2rcal:ident),)+) => {
         $(
 impl Adc<$ADC> {
+    /// Create new ADC
+    ///
+    /// Note that the frequency parameter indicates the desired ADC clock frequency, not the
+    /// sampling frequency, which depends on many parameters.
     pub fn $init<F: Into<Hertz>>(
         clock: &clock::$clock,
         freq: F,
         adc: $ADC,
         mclk: &mut MCLK,
-        samples: SampleRate,
-        resolution: Resolution,
+        sample_resolution: SampleResolution,
+        sample_length: u8,
+        reference: Reference,
     ) -> Self {
         mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
         adc.ctrla.write(|w| w.swrst().set_bit());
@@ -61,19 +78,8 @@ impl Adc<$ADC> {
 
         // Find best prescaler to get close to target freq
         let freq = freq.into();
-        let sample_ticks = 5 + 12; // 5 ticks for sample time + 1 tick for each of 12 bits
-        let num_samples = 1u32 << samples as u32;
-        let ticks: u32 = clock.freq().0 / freq.0.max(1) / sample_ticks / num_samples;
-        let divider: u32 = {
-            let next_pow = ticks.next_power_of_two();
-            let prev_pow = (ticks >> 1).next_power_of_two();
-            if next_pow - ticks < ticks - prev_pow {
-                next_pow
-            }
-            else {
-                prev_pow
-            }
-        };
+        let ticks: u32 = clock.freq().0 / freq.0.max(1);
+        let divider = (ticks.max(1)).next_power_of_two();
         adc.ctrla.modify(|_, w| w.enable().clear_bit());
         adc.ctrla.modify(|_, w| {
             match divider {
@@ -90,30 +96,36 @@ impl Adc<$ADC> {
             }
         });
 
-        adc.ctrlb.modify(|_, w| w.ressel()._12bit());
-        while adc.syncbusy.read().ctrlb().bit_is_set() {}
-        adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(5)}); // sample length
+        adc.sampctrl.modify(|_, w| unsafe {w.samplen().bits(sample_length)}); // sample length
         while adc.syncbusy.read().sampctrl().bit_is_set() {}
         adc.inputctrl.modify(|_, w| w.muxneg().gnd()); // No negative input (internal gnd)
         while adc.syncbusy.read().inputctrl().bit_is_set() {}
 
-        adc.calib.write(|w| unsafe {
+        let mut newadc = Self { adc };
+        newadc.sample_resolution(sample_resolution);
+        newadc.reference(reference);
+
+        newadc.adc.calib.write(|w| unsafe {
             w.biascomp().bits(calibration::$compcal());
             w.biasrefbuf().bits(calibration::$refcal());
             w.biasr2r().bits(calibration::$r2rcal())
         });
 
-        let mut newadc = Self { adc };
-        newadc.samples(samples);
-        newadc.resolution(resolution);
-        newadc.reference(adc0::refctrl::REFSEL_A::INTVCC1);
-
         newadc
     }
 
-    /// Set the sample rate
-    pub fn samples(&mut self, samples: SampleRate) {
+    /// Set the sample rate and resolution
+    pub fn sample_resolution(&mut self, sample_resolution: SampleResolution) {
         use adc0::avgctrl::SAMPLENUM_A;
+
+        let (samples, resolution) = match sample_resolution {
+            SampleResolution::Single(resolution) => (SAMPLENUM_A::_1, resolution),
+            SampleResolution::Average(samples) => (samples, Resolution::_16BIT),
+        };
+
+        self.adc.ctrlb.modify(|_, w| w.ressel().variant(resolution));
+        while self.adc.syncbusy.read().ctrlb().bit_is_set() {}
+
         self.adc.avgctrl.modify(|_, w| {
             w.samplenum().variant(samples);
             unsafe {
@@ -131,17 +143,6 @@ impl Adc<$ADC> {
         while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
     }
 
-    /// Set the sample rate
-    pub fn division_coefficient(&mut self, coefficient: u8) {
-        let coefficient = if coefficient > 4 { 4 } else { coefficient }; // Can't be greater than 4
-        self.adc.avgctrl.modify(|_, w| {
-            unsafe {
-                w.adjres().bits(coefficient)
-            }
-        });
-        while self.adc.syncbusy.read().avgctrl().bit_is_set() {}
-    }
-
     /// Set the voltage reference
     pub fn reference(&mut self, reference: Reference) {
         self.adc
@@ -150,29 +151,15 @@ impl Adc<$ADC> {
         while self.adc.syncbusy.read().refctrl().bit_is_set() {}
     }
 
-    /// Set the prescaler for adjusting the clock relative to the system clock
-    pub fn prescaler(&mut self, prescaler: Prescaler) {
-        self.adc
-            .ctrla
-            .modify(|_, w| w.prescaler().variant(prescaler));
-        // Note there is no syncbusy for ctrla
-    }
-
-    /// Set the input resolution
-    pub fn resolution(&mut self, resolution: Resolution) {
-        self.adc
-            .ctrlb
-            .modify(|_, w| w.ressel().variant(resolution));
-        while self.adc.syncbusy.read().ctrlb().bit_is_set() {}
-    }
-
-    fn power_up(&mut self) {
+    // Enable the ADC
+    pub fn power_up(&mut self) {
         while self.adc.syncbusy.read().enable().bit_is_set() {}
         self.adc.ctrla.modify(|_, w| w.enable().set_bit());
         while self.adc.syncbusy.read().enable().bit_is_set() {}
     }
 
-    fn power_down(&mut self) {
+    // Disable the ADC
+    pub fn power_down(&mut self) {
         while self.adc.syncbusy.read().enable().bit_is_set() {}
         self.adc.ctrla.modify(|_, w| w.enable().clear_bit());
         while self.adc.syncbusy.read().enable().bit_is_set() {}
@@ -224,12 +211,12 @@ impl Adc<$ADC> {
         }
     }
 
-    /// Sets the mux to a particular pin. The pin mux is enabled-protected,
-    /// so must be called while the peripheral is disabled.
+    /// Sets the mux to a particular pin
     fn mux<PIN: Channel<$ADC, ID=u8>>(&mut self, _pin: &mut PIN) {
         let chan = PIN::channel();
         while self.adc.syncbusy.read().inputctrl().bit_is_set() {}
         self.adc.inputctrl.modify(|_, w| w.muxpos().bits(chan));
+        while self.adc.syncbusy.read().inputctrl().bit_is_set() {}
     }
 }
 
@@ -238,7 +225,6 @@ impl ConversionMode<$ADC> for SingleConversion  {
     }
     fn on_complete(adc: &mut Adc<$ADC>) {
         adc.disable_interrupts();
-        adc.power_down();
     }
     fn on_stop(_adc: &mut Adc<$ADC>) {
     }
@@ -252,7 +238,6 @@ impl ConversionMode<$ADC> for FreeRunning {
     }
     fn on_stop(adc: &mut Adc<$ADC>) {
         adc.disable_interrupts();
-        adc.power_down();
         adc.disable_freerunning();
     }
 }
@@ -272,7 +257,6 @@ impl<C> InterruptAdc<$ADC, C>
     /// Starts a conversion sampling the specified pin.
     pub fn start_conversion<PIN: Channel<$ADC, ID=u8>>(&mut self, pin: &mut PIN) {
         self.adc.mux(pin);
-        self.adc.power_up();
         C::on_start(&mut self.adc);
         self.adc.enable_interrupts();
         self.adc.start_conversion();
@@ -299,13 +283,11 @@ where
    WORD: From<u16>,
    PIN: Channel<$ADC, ID=u8>,
 {
-   type Error = ();
+   type Error = core::convert::Infallible;
 
    fn read(&mut self, pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         self.mux(pin);
-        self.power_up();
         let result = self.synchronous_convert();
-        self.power_down();
         Ok(result.into())
    }
 }
