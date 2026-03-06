@@ -643,8 +643,8 @@ impl Pwm for $TYPE {
     }
 
     fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
-        let cc = self.tcc.cc();
-        let duty = cc[channel as usize].read().cc().bits();
+        let ccbuf = self.tcc.ccbuf();
+        let duty = ccbuf[channel as usize].read().ccbuf().bits();
         duty
     }
 
@@ -654,8 +654,8 @@ impl Pwm for $TYPE {
     }
 
     fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
-        let cc = self.tcc.cc();
-        cc[channel as usize].write(|w| unsafe { w.cc().bits(duty) });
+        let ccbuf = self.tcc.ccbuf();
+        ccbuf[channel as usize].write(|w| unsafe { w.ccbuf().bits(duty) });
     }
 
     fn set_period<P>(&mut self, period: P)
