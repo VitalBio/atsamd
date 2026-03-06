@@ -137,6 +137,7 @@ impl $TYPE {
         }
     }
 
+    #[inline]
     pub fn get_period(&self) -> Hertz {
         let count = self.tc.count16();
         let divisor = count.ctrla.read().prescaler().bits();
@@ -144,6 +145,7 @@ impl $TYPE {
         Hertz(self.clock_freq.0 / divisor as u32 / (top as u32 + 1))
     }
 
+    #[inline]
     pub fn set_period<P>(&mut self, period: P)
     where
         P: Into<Hertz>
@@ -174,29 +176,34 @@ impl $TYPE {
 impl PwmPin for $TYPE {
     type Duty = u16;
 
+    #[inline]
     fn disable(&mut self) {
         let count = self.tc.count16();
         count.ctrla.modify(|_, w| w.enable().clear_bit());
     }
 
+    #[inline]
     fn enable(&mut self) {
         let count = self.tc.count16();
         count.ctrla.modify(|_, w| w.enable().set_bit());
     }
 
 
+    #[inline]
     fn get_duty(&self) -> Self::Duty {
         let count = self.tc.count16();
         let duty: u16 = count.ccbuf[1].read().ccbuf().bits();
         duty
     }
 
+    #[inline]
     fn get_max_duty(&self) -> Self::Duty {
         let count = self.tc.count16();
         let top = count.cc[0].read().cc().bits();
         top
     }
 
+    #[inline]
     fn set_duty(&mut self, duty: Self::Duty) {
         let count = self.tc.count16();
         count.ccbuf[1].write(|w| unsafe {w.ccbuf().bits(duty)});
@@ -312,36 +319,43 @@ impl Pwm for $TYPE {
     type Time = Hertz;
     type Duty = u16;
 
+    #[inline]
     fn disable(&mut self, _channel: Self::Channel) {
         self.tc.count16().ctrla.modify(|_, w| w.enable().clear_bit());
         while self.tc.count16().syncbusy.read().enable().bit_is_set() {}
     }
 
+    #[inline]
     fn enable(&mut self, _channel: Self::Channel) {
         self.tc.count16().ctrla.modify(|_, w| w.enable().set_bit());
         while self.tc.count16().syncbusy.read().enable().bit_is_set() {}
     }
 
+    #[inline]
     fn get_period(&self) -> Self::Time {
         let divisor = self.tc.count16().ctrla.read().prescaler().bits();
         let top = u16::MAX;
         Hertz(self.clock_freq.0 / (1u32 << divisor) as u32 / (top as u32 + 1))
     }
 
+    #[inline]
     fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
         let duty = self.tc.count16().cc[channel as usize].read().cc().bits();
         duty
     }
 
+    #[inline]
     fn get_max_duty(&self) -> Self::Duty {
         let top = u16::MAX;
         top
     }
 
+    #[inline]
     fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
         self.tc.count16().cc[channel as usize].write(|w| unsafe { w.cc().bits(duty) });
     }
 
+    #[inline]
     fn set_period<P>(&mut self, _period: P)
     where
         P: Into<Self::Time>,
@@ -623,6 +637,7 @@ impl $TYPE {
         self.tcc.intenclr.write(|w| unsafe { w.bits(flags.bits()) });
     }
 
+    #[inline]
     pub fn set_frequency(&mut self, freq: impl Into<Hertz>) {
         let freq = freq.into();
         let period = (self.clock_freq.0 / self.timer_params.divider as u32 / freq.0).max(1);
@@ -635,38 +650,45 @@ impl Pwm for $TYPE {
     type Time = Hertz;
     type Duty = u32;
 
+    #[inline]
     fn disable(&mut self, _channel: Self::Channel) {
         self.tcc.ctrla.modify(|_, w| w.enable().clear_bit());
         while self.tcc.syncbusy.read().enable().bit_is_set() {}
     }
 
+    #[inline]
     fn enable(&mut self, _channel: Self::Channel) {
         self.tcc.ctrla.modify(|_, w| w.enable().set_bit());
         while self.tcc.syncbusy.read().enable().bit_is_set() {}
     }
 
+    #[inline]
     fn get_period(&self) -> Self::Time {
         let divisor = self.tcc.ctrla.read().prescaler().bits();
         let top = self.tcc.per().read().bits();
         Hertz(self.clock_freq.0 / (1u32 << divisor) / (top + 1) as u32)
     }
 
+    #[inline]
     fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
         let ccbuf = self.tcc.ccbuf();
         let duty = ccbuf[channel as usize].read().ccbuf().bits();
         duty
     }
 
+    #[inline]
     fn get_max_duty(&self) -> Self::Duty {
         let top = self.tcc.per().read().bits();
         top
     }
 
+    #[inline]
     fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
         let ccbuf = self.tcc.ccbuf();
         ccbuf[channel as usize].write(|w| unsafe { w.ccbuf().bits(duty) });
     }
 
+    #[inline]
     fn set_period<P>(&mut self, period: P)
     where
         P: Into<Self::Time>,
