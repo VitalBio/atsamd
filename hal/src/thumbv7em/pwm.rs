@@ -549,6 +549,7 @@ pub struct $TYPE {
     /// Used to calculate the period of the pwm.
     clock_freq: Hertz,
     tcc: $TCC,
+    timer_params: TimerParams,
 }
 
 impl $TYPE {
@@ -562,7 +563,7 @@ impl $TYPE {
     ) -> Self {
         const { assert!(N > 0, "must have at least one pinout"); }
         let freq = freq.into();
-        {
+        let timer_params = {
             let params = TimerParams::new(freq, clock.freq().0);
             mclk.$apmask.modify(|_, w| w.$apbits().set_bit());
             tcc.ctrla.write(|w| w.swrst().set_bit());
@@ -588,11 +589,13 @@ impl $TYPE {
             tcc.per().write(|w| unsafe { w.bits(params.cycles as u32) });
             while tcc.syncbusy.read().per().bit_is_set() {}
             tcc.ctrla.modify(|_, w| w.enable().set_bit());
-        }
+            params
+        };
 
         Self {
             clock_freq: clock.freq(),
             tcc,
+            timer_params
         }
     }
 
@@ -618,6 +621,12 @@ impl $TYPE {
     #[inline]
     pub fn disable_interrupts(&mut self, flags: Flags) {
         self.tcc.intenclr.write(|w| unsafe { w.bits(flags.bits()) });
+    }
+
+    pub fn set_frequency(&mut self, freq: impl Into<Hertz>) {
+        let freq = freq.into();
+        let period = (self.clock_freq.0 / self.timer_params.divider as u32 / freq.0).max(1);
+        self.tcc.perbuf().write(|w| unsafe { w.perbuf().bits(period) });
     }
 }
 
@@ -683,6 +692,7 @@ impl Pwm for $TYPE {
         while self.tcc.syncbusy.read().enable().bit_is_set() {}
         self.tcc.per().write(|w| unsafe { w.bits(params.cycles as u32) });
         while self.tcc.syncbusy.read().per().bit() {}
+        self.timer_params = params;
     }
 }
 
