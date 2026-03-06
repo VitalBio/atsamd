@@ -637,6 +637,7 @@ impl $TYPE {
         self.tcc.intenclr.write(|w| unsafe { w.bits(flags.bits()) });
     }
 
+    /// Set PWM frequency glitch-free without changing the clock divider
     #[inline]
     pub fn set_frequency(&mut self, freq: impl Into<Hertz>) {
         let freq = freq.into();
